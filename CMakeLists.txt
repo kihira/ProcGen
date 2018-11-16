@@ -3,7 +3,7 @@ project(ProcGen)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(ProcGen main.cpp)
+add_executable(ProcGen src/main.cpp)
 
 # GLFW
 # Disable GLFW docs, tests and examples
