@@ -5,6 +5,7 @@
 
 #include <vec3.hpp>
 #include <glad/glad.h>
+#include <vector>
 
 /**
  * Effectively a 1D array that is accessible as a 2D one. Good for quickly uploaded data to OpenGL
@@ -16,10 +17,11 @@ private:
     GLuint ibo; // Indices data
     GLenum mode;
     GLsizei elementCount;
+    unsigned short width, height;
     glm::vec3 *data;
-    int width, height;
+    std::vector<unsigned short> indices;
 public:
-    Mesh(int width, int height);
+    Mesh(unsigned short  width, unsigned short  height);
 
     glm::vec3 &getValue(int x, int y);
 
@@ -27,7 +29,17 @@ public:
 
     glm::vec3 *getData();
 
+    unsigned int getSize();
+
+    /**
+     * Renders the current mesh
+     */
     void render();
+
+    /**
+     * Generates the buffers and fills them with the mesh data
+     */
+    void buildBuffers();
 };
 
 
