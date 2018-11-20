@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <ext.hpp>
 #include "Shader.h"
 
 Shader::Shader(const char *vertexSrc, const char *fragSrc) {
@@ -50,5 +51,5 @@ void Shader::use() {
 }
 
 void Shader::setUniform(const char *name, glm::mat4 value) {
-    glUniformMatrix4fv(glGetUniformLocation(program, name), 1, GL_FALSE, &value[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(program, name), 1, GL_FALSE, glm::value_ptr(value));
 }

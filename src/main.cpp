@@ -9,7 +9,7 @@
 #define MAP_SIZE 5
 
 const char *vertShaderSource = R"(
-#version 330
+#version 330 core
 
 layout(location = 0) in vec3 aPos;
 // layout(location = 1) in vec3 aNormal;
@@ -25,12 +25,12 @@ out vec2 uv;
 void main() {
     // normal = aNormal;
     // uv = aUv;
-    gl_Position = projection * view * model * vec4(aPos, 0);
+    gl_Position = projection * view * model * vec4(aPos, 1.f);
 }
 )";
 
 const char *fragShaderSource = R"(
-#version 330
+#version 330 core
 
 // in vec3 normal;
 // in vec2 uv;
@@ -38,20 +38,20 @@ const char *fragShaderSource = R"(
 out vec4 colour;
 
 void main() {
-    colour = vec4(0.5, 0.5, 0.5, 1);
+    colour = vec4(1, 1, 1, 1);
 }
 )";
 
 Shader *shader;
 
 struct Camera {
-    glm::vec3 position;
-    glm::vec3 rotation;
-    glm::mat4 viewMatrix;
-    glm::mat4 projMatrix;
+    glm::vec3 position = glm::vec3(5.f, 5.f, 5.f);
+    glm::vec3 rotation = glm::vec3(0.f);
+    glm::mat4 viewMatrix = glm::mat4(1.f);
+    glm::mat4 projMatrix = glm::mat4(1.f);
     // Used for rotation delta
-    double cursorPosLastX;
-    double cursorPosLastY;
+    double cursorPosLastX = 0;
+    double cursorPosLastY = 0;
     // Camera settings
     float fov = 90.f;
     float near = .1f;
@@ -60,25 +60,34 @@ struct Camera {
     float rotationSpeed = .1f;
 
     void updateProjectionMatrix(const int width, const int height) {
-        projMatrix = glm::perspective(fov, (float) width / height, near, far);
+        projMatrix = glm::perspective(glm::radians(fov), (float) width / (float) height, near, far);
         shader->setUniform("projection", projMatrix);
     }
 
     void updateViewMatrix() {
-        viewMatrix = glm::translate(glm::mat4(1.f), position);
-        viewMatrix = glm::rotate(viewMatrix, rotation.x, glm::vec3(1.f, 0.f, 0.f));
-        viewMatrix = glm::rotate(viewMatrix, rotation.y, glm::vec3(0.f, 1.f, 0.f));
-        viewMatrix = glm::rotate(viewMatrix, rotation.z, glm::vec3(0.f, 0.f, 1.f));
+          viewMatrix = glm::lookAt(position, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
+//        viewMatrix = glm::translate(glm::mat4(1.f), position);
+//        viewMatrix = glm::rotate(viewMatrix, rotation.x, glm::vec3(1.f, 0.f, 0.f));
+//        viewMatrix = glm::rotate(viewMatrix, rotation.y, glm::vec3(0.f, 1.f, 0.f));
+//        viewMatrix = glm::rotate(viewMatrix, rotation.z, glm::vec3(0.f, 0.f, 1.f));
         shader->setUniform("view", viewMatrix);
     }
 
 } camera;
+
+void glErrorCheck() {
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR) {
+        std::cerr << "(" << __FILE__ << ":" << __LINE__ << ") OpenGL error 0x" << std::hex << err << std::endl;
+    }
+}
 
 void glfwErrorCallback(int errCode, const char *description) {
     std::cerr << "GLFW Error " << errCode << ": " << description << std::endl;
 }
 
 void glfwCursorPosCallback(GLFWwindow *window, double xPos, double yPos) {
+    return;
     auto cursorDelta = glm::dvec2(xPos - camera.cursorPosLastX, yPos - camera.cursorPosLastY);
     camera.rotation.x += cursorDelta.y * camera.rotationSpeed;
     camera.rotation.y += cursorDelta.x * camera.rotationSpeed;
@@ -228,7 +237,7 @@ void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
     diamondSquare(mesh, h, stepSize, randMax);
 }
 
-void generateTerrain() {
+void generateTerrain(std::vector<Mesh *> &terrain) {
     auto mesh = new Mesh(MAP_SIZE, MAP_SIZE);
     float randHeight = static_cast<float>(rand() % 10) / 10.f;
     std::cout << "Starting height: " << randHeight << std::endl;
@@ -240,6 +249,7 @@ void generateTerrain() {
     diamondSquare(mesh, 1.f, MAP_SIZE - 1, 1.f);
 
     mesh->buildBuffers();
+    terrain.push_back(mesh);
 }
 
 int main() {
@@ -253,8 +263,8 @@ int main() {
         return -1;
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #if __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
@@ -276,20 +286,38 @@ int main() {
     glfwSwapInterval(1);
 
     // Generate shaders
-    auto shader = new Shader(vertShaderSource, fragShaderSource);
+    shader = new Shader(vertShaderSource, fragShaderSource);
     shader->use();
 
     glfwSetFramebufferSizeCallback(window, glfwFramebufferSizeCallback);
     glfwSetKeyCallback(window, glfwKeyCallback);
     glfwSetCursorPosCallback(window, glfwCursorPosCallback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Lock mouse to window and hide cursor
+    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Lock mouse to window and hide cursor
 
-    generateTerrain();
+    // Set some default parameters
+    glClearColor(.7f, .7f, .7f, 1.f);
+    // glCullFace(GL_BACK);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    return 0;
+    // Generate terrain
+    std::vector<Mesh *> terrain;
+    generateTerrain(terrain);
+
+    glViewport(0, 0, 1080, 720);
+    camera.updateProjectionMatrix(1080, 720);
+    camera.updateViewMatrix();
 
     while (!glfwWindowShouldClose(window)) {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        for (auto mesh : terrain) {
+            mesh->render(shader);
+        }
+
+        glErrorCheck();
+
         glfwPollEvents();
         glfwSwapBuffers(window);
     }
+
+    return 0;
 }
