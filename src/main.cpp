@@ -36,6 +36,10 @@ struct Camera {
 
 } camera;
 
+void glfwErrorCallback(int errCode, const char *description) {
+    std::cerr << "GLFW Error " << errCode << ": " << description << std::endl;
+}
+
 void glfwCursorPosCallback(GLFWwindow *window, double xPos, double yPos) {
     auto cursorDelta = glm::dvec2(xPos - camera.cursorPosLastX, yPos - camera.cursorPosLastY);
     camera.rotation.x += cursorDelta.y * camera.rotationSpeed;
@@ -186,10 +190,13 @@ void diamondSquare(glm::vec3 vertices[MAP_SIZE][MAP_SIZE], float h, int stepSize
 }
 
 int main() {
+    glfwSetErrorCallback(glfwErrorCallback);
+
     GLFWwindow *window;
     GLuint vao, vertexBuffer, vertexShader, fragmentShader, program, raycastTexture;
 
     if (!glfwInit()) {
+        std::cerr << "Failed to init GLFW!" << std::endl;
         return -1;
     }
 
@@ -202,13 +209,15 @@ int main() {
 
     window = glfwCreateWindow(1080, 720, "322COM ProcGen", nullptr, nullptr);
     if (!window) {
+        std::cerr << "Failed to create GLFW Window!" << std::endl;
         glfwTerminate();
         return -1;
     }
 
     glfwMakeContextCurrent(window);
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
-        std::cerr << "Failed to load GLAD" << std::endl;
+        std::cerr << "Failed to load GLAD!" << std::endl;
+        glfwTerminate();
         return -1;
     }
     glfwSwapInterval(1);
