@@ -4,8 +4,45 @@
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #include "Mesh.h"
+#include "Shader.h"
 
 #define MAP_SIZE 5
+
+const char *vertShaderSource = R"(
+#version 330
+
+layout(location = 0) in vec3 aPos;
+// layout(location = 1) in vec3 aNormal;
+// layout(location = 2) in vec2 aUv;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 normal;
+out vec2 uv;
+
+void main() {
+    // normal = aNormal;
+    // uv = aUv;
+    gl_Position = projection * view * model * vec4(aPos, 0);
+}
+)";
+
+const char *fragShaderSource = R"(
+#version 330
+
+// in vec3 normal;
+// in vec2 uv;
+
+out vec4 colour;
+
+void main() {
+    colour = vec4(0.5, 0.5, 0.5, 1);
+}
+)";
+
+Shader *shader;
 
 struct Camera {
     glm::vec3 position;
@@ -24,7 +61,7 @@ struct Camera {
 
     void updateProjectionMatrix(const int width, const int height) {
         projMatrix = glm::perspective(fov, (float) width / height, near, far);
-        // todo update shader uniform
+        shader->setUniform("projection", projMatrix);
     }
 
     void updateViewMatrix() {
@@ -32,7 +69,7 @@ struct Camera {
         viewMatrix = glm::rotate(viewMatrix, rotation.x, glm::vec3(1.f, 0.f, 0.f));
         viewMatrix = glm::rotate(viewMatrix, rotation.y, glm::vec3(0.f, 1.f, 0.f));
         viewMatrix = glm::rotate(viewMatrix, rotation.z, glm::vec3(0.f, 0.f, 1.f));
-        // todo update shader uniform
+        shader->setUniform("view", viewMatrix);
     }
 
 } camera;
@@ -191,6 +228,20 @@ void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
     diamondSquare(mesh, h, stepSize, randMax);
 }
 
+void generateTerrain() {
+    auto mesh = new Mesh(MAP_SIZE, MAP_SIZE);
+    float randHeight = static_cast<float>(rand() % 10) / 10.f;
+    std::cout << "Starting height: " << randHeight << std::endl;
+
+    mesh->getValue(0, 0).y = randHeight;
+    mesh->getValue(0, MAP_SIZE - 1).y = randHeight;
+    mesh->getValue(MAP_SIZE - 1, MAP_SIZE - 1).y = randHeight;
+    mesh->getValue(MAP_SIZE - 1, 0).y = randHeight;
+    diamondSquare(mesh, 1.f, MAP_SIZE - 1, 1.f);
+
+    mesh->buildBuffers();
+}
+
 int main() {
     glfwSetErrorCallback(glfwErrorCallback);
 
@@ -224,20 +275,16 @@ int main() {
     }
     glfwSwapInterval(1);
 
+    // Generate shaders
+    auto shader = new Shader(vertShaderSource, fragShaderSource);
+    shader->use();
+
     glfwSetFramebufferSizeCallback(window, glfwFramebufferSizeCallback);
     glfwSetKeyCallback(window, glfwKeyCallback);
     glfwSetCursorPosCallback(window, glfwCursorPosCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Lock mouse to window and hide cursor
 
-    auto mesh = new Mesh(MAP_SIZE, MAP_SIZE);
-    float randHeight = static_cast<float>(rand() % 10) / 10.f;
-    std::cout << "Starting height: " << randHeight << std::endl;
-
-    mesh->getValue(0, 0).y = randHeight;
-    mesh->getValue(0, MAP_SIZE - 1).y = randHeight;
-    mesh->getValue(MAP_SIZE - 1, MAP_SIZE - 1).y = randHeight;
-    mesh->getValue(MAP_SIZE - 1, 0).y = randHeight;
-    diamondSquare(mesh, 1.f, MAP_SIZE - 1, 1.f);
+    generateTerrain();
 
     return 0;
 

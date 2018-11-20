@@ -16,10 +16,11 @@ private:
     GLuint vbo; // Vertices data
     GLuint ibo; // Indices data
     GLenum mode;
-    GLsizei elementCount;
+    std::vector<unsigned short> indices;
+
+    // Data for generating terrain
     unsigned short width, height;
     glm::vec3 *data;
-    std::vector<unsigned short> indices;
 public:
     Mesh(unsigned short  width, unsigned short  height);
 

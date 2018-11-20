@@ -20,7 +20,7 @@ glm::vec3 *Mesh::getData() {
 
 void Mesh::render() {
     glBindVertexArray(vao);
-    glDrawElements(mode, elementCount, GL_UNSIGNED_INT, nullptr);
+    glDrawElements(mode, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_SHORT, nullptr);
 }
 
 void Mesh::buildBuffers() {
