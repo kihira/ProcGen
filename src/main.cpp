@@ -45,19 +45,21 @@ void main() {
 Shader *shader;
 
 struct Camera {
-    glm::vec3 position = glm::vec3(5.f, 5.f, 5.f);
-    glm::vec3 rotation = glm::vec3(0.f);
+    glm::vec3 position = glm::vec3(0.f, 0.f, 0.f);
+    glm::vec3 direction = glm::vec3(0.f, 0.f, -1.f);
     glm::mat4 viewMatrix = glm::mat4(1.f);
     glm::mat4 projMatrix = glm::mat4(1.f);
     // Used for rotation delta
     double cursorPosLastX = 0;
     double cursorPosLastY = 0;
+    float yaw = 0.f;
+    float pitch = 0.f;
     // Camera settings
     float fov = 90.f;
     float near = .1f;
     float far = 1000.f;
     float translateSpeed = .1f;
-    float rotationSpeed = .1f;
+    float rotationSpeed = .25f;
 
     void updateProjectionMatrix(const int width, const int height) {
         projMatrix = glm::perspective(glm::radians(fov), (float) width / (float) height, near, far);
@@ -65,11 +67,16 @@ struct Camera {
     }
 
     void updateViewMatrix() {
-          viewMatrix = glm::lookAt(position, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
-//        viewMatrix = glm::translate(glm::mat4(1.f), position);
-//        viewMatrix = glm::rotate(viewMatrix, rotation.x, glm::vec3(1.f, 0.f, 0.f));
-//        viewMatrix = glm::rotate(viewMatrix, rotation.y, glm::vec3(0.f, 1.f, 0.f));
-//        viewMatrix = glm::rotate(viewMatrix, rotation.z, glm::vec3(0.f, 0.f, 1.f));
+        // Prevent "flipping" the camera when looking up and down
+        pitch = glm::clamp(pitch, -89.9f, 89.9f);
+
+        // Calculate looking direction
+        direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        direction.y = sin(glm::radians(-pitch));
+        direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        direction = glm::normalize(direction);
+
+        viewMatrix = glm::lookAt(position, position + direction, glm::vec3(0.f, 1.f, 0.f));
         shader->setUniform("view", viewMatrix);
     }
 
@@ -87,10 +94,10 @@ void glfwErrorCallback(int errCode, const char *description) {
 }
 
 void glfwCursorPosCallback(GLFWwindow *window, double xPos, double yPos) {
-    return;
     auto cursorDelta = glm::dvec2(xPos - camera.cursorPosLastX, yPos - camera.cursorPosLastY);
-    camera.rotation.x += cursorDelta.y * camera.rotationSpeed;
-    camera.rotation.y += cursorDelta.x * camera.rotationSpeed;
+
+    camera.yaw += cursorDelta.x * camera.rotationSpeed;
+    camera.pitch += cursorDelta.y * camera.rotationSpeed;
     camera.updateViewMatrix();
 
     camera.cursorPosLastX = xPos;
@@ -99,6 +106,7 @@ void glfwCursorPosCallback(GLFWwindow *window, double xPos, double yPos) {
 
 void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     // Repeating key used for camera controls
+    // todo translate based on facing position
     if (action == GLFW_REPEAT) {
         switch (key) {
             case GLFW_KEY_W:
@@ -120,10 +128,10 @@ void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int 
                 camera.position.t -= camera.translateSpeed;
                 break;
             case GLFW_KEY_Q:
-                camera.rotation.z -= camera.rotationSpeed;
+                camera.direction.z -= camera.rotationSpeed;
                 break;
             case GLFW_KEY_E:
-                camera.rotation.z += camera.rotationSpeed;
+                camera.direction.z += camera.rotationSpeed;
                 break;
         }
         camera.updateViewMatrix();
@@ -292,12 +300,12 @@ int main() {
     glfwSetFramebufferSizeCallback(window, glfwFramebufferSizeCallback);
     glfwSetKeyCallback(window, glfwKeyCallback);
     glfwSetCursorPosCallback(window, glfwCursorPosCallback);
-    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Lock mouse to window and hide cursor
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Lock mouse to window and hide cursor
 
     // Set some default parameters
     glClearColor(.7f, .7f, .7f, 1.f);
-    // glCullFace(GL_BACK);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glCullFace(GL_BACK);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // Generate terrain
     std::vector<Mesh *> terrain;
