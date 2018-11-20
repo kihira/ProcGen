@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
+#include "Mesh.h"
 
 #define MAP_SIZE 5
 
@@ -93,7 +94,8 @@ float randomInRange(float min, float max) {
 }
 
 // todo wrap around
-float diamondStep(glm::vec3 vertices[MAP_SIZE][MAP_SIZE], int x, int y, int stepSize) {
+// todo does this actually ever wrap around?
+float diamondStep(Mesh *mesh, int x, int y, int stepSize) {
     float averageHeight = 0.f;
     int count = 0;
     int xMin, xMax, yMin, yMax = 0;
@@ -103,21 +105,21 @@ float diamondStep(glm::vec3 vertices[MAP_SIZE][MAP_SIZE], int x, int y, int step
     yMax = y + stepSize;
     if (xMin >= 0) {
         if (yMin >= 0) {
-            averageHeight += vertices[xMin][yMin].y; // Top left
+            averageHeight += mesh->getValue(xMin, yMin).y; // Top left
             count++;
         }
         if (yMax < MAP_SIZE) {
-            averageHeight += vertices[xMin][yMax].y; // Bottom left
+            averageHeight += mesh->getValue(xMin, yMax).y; // Bottom left
             count++;
         }
     }
     if (xMax < MAP_SIZE) {
         if (yMin >= 0) {
-            averageHeight += vertices[xMax][yMin].y; // Top right
+            averageHeight += mesh->getValue(xMax, yMin).y; // Top right
             count++;
         }
         if (yMax < MAP_SIZE) {
-            averageHeight += vertices[xMax][yMax].y; // Bottom right
+            averageHeight += mesh->getValue(xMax, yMax).y; // Bottom right
             count++;
         }
     }
@@ -132,7 +134,7 @@ float diamondStep(glm::vec3 vertices[MAP_SIZE][MAP_SIZE], int x, int y, int step
  * @param y
  * @param stepSize
  */
-float squareStep(glm::vec3 vertices[MAP_SIZE][MAP_SIZE], int x, int y, int stepSize) {
+float squareStep(Mesh *vertices, int x, int y, int stepSize) {
     float averageHeight = 0.f;
     int count = 0;
     int xMin, xMax, yMin, yMax = 0;
@@ -141,19 +143,19 @@ float squareStep(glm::vec3 vertices[MAP_SIZE][MAP_SIZE], int x, int y, int stepS
     yMin = y - stepSize;
     yMax = y + stepSize;
     if (xMin >= 0) {
-        averageHeight += vertices[xMin][y].y; // Left
+        averageHeight += vertices->getValue(xMin, y).y; // Left
         count++;
     }
     if (xMax < MAP_SIZE) {
-        averageHeight += vertices[xMax][y].y; // Right
+        averageHeight += vertices->getValue(xMax, y).y; // Right
         count++;
     }
     if (yMin >= 0) {
-        averageHeight += vertices[x][yMin].y; // Top
+        averageHeight += vertices->getValue(x, yMin).y; // Top
         count++;
     }
     if (yMax < MAP_SIZE) {
-        averageHeight += vertices[x][yMax].y; // Bottom
+        averageHeight += vertices->getValue(x, yMax).y; // Bottom
         count++;
     }
     return averageHeight / count;
@@ -161,18 +163,18 @@ float squareStep(glm::vec3 vertices[MAP_SIZE][MAP_SIZE], int x, int y, int stepS
 
 /**
  * Applies the Diamond-Square algorithm to the provided set of vertices in a recursive way
- * @param vertices The vertices
+ * @param mesh The mesh data
  * @param h The smoothness
  * @param stepSize The step size
  * @param randMax Maximum random offset
  */
-void diamondSquare(glm::vec3 vertices[MAP_SIZE][MAP_SIZE], float h, int stepSize, float randMax) {
+void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
     if (stepSize <= 1) return;
     int halfStepSize = stepSize / 2;
 
     for (int x = stepSize / 2; x < MAP_SIZE - 1; x += stepSize) {
         for (int y = stepSize / 2; y < MAP_SIZE - 1; y += stepSize) {
-            vertices[x][y].y = diamondStep(vertices, x, y, halfStepSize) * randomInRange(-randMax, randMax);
+            mesh->getValue(x, y).y = diamondStep(mesh, x, y, halfStepSize) * randomInRange(-randMax, randMax);
         }
     }
 
@@ -180,13 +182,13 @@ void diamondSquare(glm::vec3 vertices[MAP_SIZE][MAP_SIZE], float h, int stepSize
     for (int x = 0; x <= MAP_SIZE - 1; x += halfStepSize) {
         offset = !offset;
         for (int y = offset ? halfStepSize : 0; y <= MAP_SIZE - 1; y += stepSize) {
-            vertices[x][y].y = squareStep(vertices, x, y, halfStepSize) * randomInRange(-randMax, randMax);
+            mesh->getValue(x, y).y = squareStep(mesh, x, y, halfStepSize) * randomInRange(-randMax, randMax);
         }
     }
 
     randMax = randMax * powf(2, h);
     stepSize = stepSize / 2;
-    diamondSquare(vertices, h, stepSize, randMax);
+    diamondSquare(mesh, h, stepSize, randMax);
 }
 
 int main() {
@@ -227,15 +229,15 @@ int main() {
     glfwSetCursorPosCallback(window, glfwCursorPosCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Lock mouse to window and hide cursor
 
-    glm::vec3 vertices[MAP_SIZE][MAP_SIZE];
+    auto mesh = new Mesh(MAP_SIZE, MAP_SIZE);
     float randHeight = static_cast<float>(rand() % 10) / 10.f;
     std::cout << "Starting height: " << randHeight << std::endl;
 
-    vertices[0][0].y = randHeight;
-    vertices[0][MAP_SIZE - 1].y = randHeight;
-    vertices[MAP_SIZE - 1][MAP_SIZE - 1].y = randHeight;
-    vertices[MAP_SIZE - 1][0].y = randHeight;
-    diamondSquare(vertices, 1.f, MAP_SIZE - 1, 1.f);
+    mesh->getValue(0, 0).y = randHeight;
+    mesh->getValue(0, MAP_SIZE - 1).y = randHeight;
+    mesh->getValue(MAP_SIZE - 1, MAP_SIZE - 1).y = randHeight;
+    mesh->getValue(MAP_SIZE - 1, 0).y = randHeight;
+    diamondSquare(mesh, 1.f, MAP_SIZE - 1, 1.f);
 
     return 0;
 
