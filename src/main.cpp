@@ -4,6 +4,8 @@
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 
+#define MAP_SIZE 5
+
 struct Camera {
     glm::vec3 position;
     glm::vec3 rotation;
@@ -82,6 +84,107 @@ void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
     camera.updateProjectionMatrix(width, height);
 }
 
+float randomInRange(float min, float max) {
+    return min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX)/(max - min);
+}
+
+// todo wrap around
+float diamondStep(glm::vec3 vertices[MAP_SIZE][MAP_SIZE], int x, int y, int stepSize) {
+    float averageHeight = 0.f;
+    int count = 0;
+    int xMin, xMax, yMin, yMax = 0;
+    xMin = x - stepSize;
+    xMax = x + stepSize;
+    yMin = y - stepSize;
+    yMax = y + stepSize;
+    if (xMin >= 0) {
+        if (yMin >= 0) {
+            averageHeight += vertices[xMin][yMin].y; // Top left
+            count++;
+        }
+        if (yMax < MAP_SIZE) {
+            averageHeight += vertices[xMin][yMax].y; // Bottom left
+            count++;
+        }
+    }
+    if (xMax < MAP_SIZE) {
+        if (yMin >= 0) {
+            averageHeight += vertices[xMax][yMin].y; // Top right
+            count++;
+        }
+        if (yMax < MAP_SIZE) {
+            averageHeight += vertices[xMax][yMax].y; // Bottom right
+            count++;
+        }
+    }
+    return averageHeight / count;
+}
+
+// todo wrap around
+/**
+ * Calculates the average height for the provided vertex based on a diamond pattern around it
+ * @param vertices
+ * @param x
+ * @param y
+ * @param stepSize
+ */
+float squareStep(glm::vec3 vertices[MAP_SIZE][MAP_SIZE], int x, int y, int stepSize) {
+    float averageHeight = 0.f;
+    int count = 0;
+    int xMin, xMax, yMin, yMax = 0;
+    xMin = x - stepSize;
+    xMax = x + stepSize;
+    yMin = y - stepSize;
+    yMax = y + stepSize;
+    if (xMin >= 0) {
+        averageHeight += vertices[xMin][y].y; // Left
+        count++;
+    }
+    if (xMax < MAP_SIZE) {
+        averageHeight += vertices[xMax][y].y; // Right
+        count++;
+    }
+    if (yMin >= 0) {
+        averageHeight += vertices[x][yMin].y; // Top
+        count++;
+    }
+    if (yMax < MAP_SIZE) {
+        averageHeight += vertices[x][yMax].y; // Bottom
+        count++;
+    }
+    return averageHeight / count;
+}
+
+/**
+ * Applies the Diamond-Square algorithm to the provided set of vertices in a recursive way
+ * @param vertices The vertices
+ * @param h The smoothness
+ * @param stepSize The step size
+ * @param randMax Maximum random offset
+ */
+void diamondSquare(glm::vec3 vertices[MAP_SIZE][MAP_SIZE], float h, int stepSize, float randMax) {
+    if (stepSize <= 1) return;
+    int halfStepSize = stepSize / 2;
+
+    for (int x = stepSize / 2; x < MAP_SIZE - 1; x += stepSize) {
+        for (int y = stepSize / 2; y < MAP_SIZE - 1; y += stepSize) {
+            vertices[x][y].y = diamondStep(vertices, x, y, halfStepSize) * randomInRange(-randMax, randMax);
+        }
+    }
+
+    bool offset = false;
+    for (int x = 0; x <= MAP_SIZE - 1; x += halfStepSize) {
+        offset = !offset;
+        for (int y = offset ? halfStepSize : 0; y <= MAP_SIZE - 1; y += stepSize) {
+            vertices[x][y].y = squareStep(vertices, x, y, halfStepSize) * randomInRange(-randMax, randMax);
+        }
+    }
+
+    randMax = randMax * powf(2, h);
+    stepSize = stepSize / 2;
+    diamondSquare(vertices, h, stepSize, randMax);
+}
+
 int main() {
     GLFWwindow *window;
     GLuint vao, vertexBuffer, vertexShader, fragmentShader, program, raycastTexture;
@@ -114,6 +217,18 @@ int main() {
     glfwSetKeyCallback(window, glfwKeyCallback);
     glfwSetCursorPosCallback(window, glfwCursorPosCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Lock mouse to window and hide cursor
+
+    glm::vec3 vertices[MAP_SIZE][MAP_SIZE];
+    float randHeight = static_cast<float>(rand() % 10) / 10.f;
+    std::cout << "Starting height: " << randHeight << std::endl;
+
+    vertices[0][0].y = randHeight;
+    vertices[0][MAP_SIZE - 1].y = randHeight;
+    vertices[MAP_SIZE - 1][MAP_SIZE - 1].y = randHeight;
+    vertices[MAP_SIZE - 1][0].y = randHeight;
+    diamondSquare(vertices, 1.f, MAP_SIZE - 1, 1.f);
+
+    return 0;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
