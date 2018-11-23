@@ -1,5 +1,6 @@
 
 #include <ext/matrix_transform.hpp>
+#include <iostream>
 #include "Mesh.h"
 
 Mesh::Mesh(unsigned short width, unsigned short height) : width(width), height(height) {
@@ -51,14 +52,14 @@ void Mesh::buildBuffers() {
     glEnableVertexAttribArray(0);
 
     // Generate indices
-    for (unsigned short y = 0; y < height; y++) {
-        for (unsigned short x = 0; x <= width; x++) {
+    for (unsigned short y = 0; y < height; ++y) {
+        for (unsigned short x = 0; x < width; ++x) {
             indices.push_back((y * height) + x);
             indices.push_back((y * height) + x + height);
         }
         // Degenerate triangles
+        indices.push_back((y * height) + width + height - (ushort) 1);
         indices.push_back((y * height) + width);
-        indices.push_back((y * height) + width + height);
     }
 
     // Remove last two which are degenerates
