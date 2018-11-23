@@ -56,6 +56,10 @@ void Shader::setUniform(const char *name, glm::mat4 value) {
     glUniformMatrix4fv(glGetUniformLocation(program, name), 1, GL_FALSE, glm::value_ptr(value));
 }
 
+void Shader::setUniform(const char *name, glm::mat3 value) {
+    glUniformMatrix3fv(glGetUniformLocation(program, name), 1, GL_FALSE, glm::value_ptr(value));
+}
+
 void Shader::setMaterial(Material &material) {
     glUniform3fv(glGetUniformLocation(program, "material.ambient"), 1, glm::value_ptr(material.ambient));
     glUniform3fv(glGetUniformLocation(program, "material.diffuse"), 1, glm::value_ptr(material.ambient));

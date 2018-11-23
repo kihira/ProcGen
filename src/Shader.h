@@ -23,6 +23,8 @@ public:
 
     void setUniform(const char *name, glm::mat4 value);
 
+    void setUniform(const char *name, glm::mat3 value);
+
     void setMaterial(Material &material);
 
     void setGlobalAmbient(glm::vec3 &colour);

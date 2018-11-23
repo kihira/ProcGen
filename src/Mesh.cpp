@@ -15,7 +15,7 @@ Mesh::Mesh(unsigned short width, unsigned short height, Material &material) : wi
             getValue(x, z).position.y = 0.f;
             getValue(x, z).position.z = z;
             getValue(x, z).normal.x = 0.f;
-            getValue(x, z).normal.y = 1.f;
+            getValue(x, z).normal.y = 0.f;
             getValue(x, z).normal.z = 0.f;
         }
     }
@@ -36,6 +36,7 @@ Vertex *Mesh::getData() {
 
 void Mesh::render(Shader *shader) {
     shader->setUniform("model", modelMatrix);
+    shader->setUniform("normalMat", glm::transpose(glm::inverse(glm::mat3(modelMatrix))));
     shader->setMaterial(material);
 
     glBindVertexArray(vao);
@@ -76,20 +77,20 @@ void Mesh::buildBuffers() {
 #endif
 
     // Generate normals
-    // Store normals in a temp array and start them with a 0  direction
-    std::vector<glm::vec3> normals;
-    normals.resize(getSize(), glm::vec3(0.f));
+    // Optimisations done:
+    // - Store normal in vertex and just modify that instead of an external loop
+    // todo could optimise this by putting it into the indices loop
 
     for (int i = 0; i < indices.size() - 2; ++i) {
         auto vert1 = data[indices[i]].position;
         auto vert2 = data[indices[i + 1]].position;
         auto vert3 = data[indices[i + 2]].position;
-        normals[indices[i]] += glm::cross(vert1 - vert2, vert1 - vert3);
-        normals[indices[i + 1]] += glm::cross(vert2 - vert3, vert2 - vert1);
-        normals[indices[i + 2]] += glm::cross(vert3 - vert1, vert3 - vert2);
+        data[indices[i]].normal += glm::cross(vert1 - vert2, vert1 - vert3);
+        data[indices[i + 1]].normal += glm::cross(vert2 - vert3, vert2 - vert1);
+        data[indices[i + 2]].normal += glm::cross(vert3 - vert1, vert3 - vert2);
     }
     for (int vertex = 0; vertex < getSize(); ++vertex) {
-        data[vertex].normal = glm::normalize(normals[vertex]);
+        data[vertex].normal = glm::normalize(data[vertex].normal);
     }
 
     // Generate VAO
@@ -100,9 +101,9 @@ void Mesh::buildBuffers() {
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, getSize() * sizeof(Vertex), getData(), GL_STATIC_DRAW);
+    // Position
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
     glEnableVertexAttribArray(0);
-
     // Normals
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)sizeof(glm::vec3));
     glEnableVertexAttribArray(1);
