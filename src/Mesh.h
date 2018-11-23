@@ -19,7 +19,7 @@ struct Material {
 struct Vertex {
     glm::vec3 position;
     glm::vec3 normal;
-    glm::vec2 uv;
+    //glm::vec2 uv;
 };
 
 /**
@@ -42,15 +42,13 @@ private:
 
     // Data for generating terrain
     unsigned short width, height;
-    glm::vec3 *data;
+    Vertex *data;
 public:
     Mesh(unsigned short width, unsigned short height, Material &material);
 
-    glm::vec3 &getValue(int x, int y);
+    Vertex &getValue(int x, int y);
 
-    void setValue(int x, int y, glm::vec3 value);
-
-    glm::vec3 *getData();
+    Vertex *getData();
 
     unsigned int getSize();
 

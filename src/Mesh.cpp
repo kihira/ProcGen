@@ -6,14 +6,17 @@
 #define TRIANGLE_STRIP
 
 Mesh::Mesh(unsigned short width, unsigned short height, Material &material) : width(width), height(height), material(material) {
-    data = new glm::vec3[width * height];
+    data = new Vertex[width * height];
 
-    // Generate xz coords
+    // Generate initial data
     for (int x = 0; x < width; ++x) {
         for (int z = 0; z < height; ++z) {
-            getValue(x, z).x = x;
-            getValue(x, z).y = 0.f;
-            getValue(x, z).z = z;
+            getValue(x, z).position.x = x;
+            getValue(x, z).position.y = 0.f;
+            getValue(x, z).position.z = z;
+            getValue(x, z).normal.x = 0.f;
+            getValue(x, z).normal.y = 1.f;
+            getValue(x, z).normal.z = 0.f;
         }
     }
 
@@ -23,15 +26,11 @@ Mesh::Mesh(unsigned short width, unsigned short height, Material &material) : wi
     updateModelMatrix();
 }
 
-glm::vec3 &Mesh::getValue(int x, int y) {
+Vertex &Mesh::getValue(int x, int y) {
     return data[width * y + x];
 }
 
-void Mesh::setValue(int x, int y, glm::vec3 value) {
-    data[width * y + x] = value;
-}
-
-glm::vec3 *Mesh::getData() {
+Vertex *Mesh::getData() {
     return data;
 }
 
@@ -44,16 +43,6 @@ void Mesh::render(Shader *shader) {
 }
 
 void Mesh::buildBuffers() {
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // Vertex data
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, getSize() * sizeof(glm::vec3), getData(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glEnableVertexAttribArray(0);
-
 #ifdef TRIANGLE_STRIP
     // Generate triangle strip indices
     mode = GL_TRIANGLE_STRIP;
@@ -85,6 +74,38 @@ void Mesh::buildBuffers() {
         }
     }
 #endif
+
+    // Generate normals
+    // Store normals in a temp array and start them with a 0  direction
+    std::vector<glm::vec3> normals;
+    normals.resize(getSize(), glm::vec3(0.f));
+
+    for (int i = 0; i < indices.size() - 2; ++i) {
+        auto vert1 = data[indices[i]].position;
+        auto vert2 = data[indices[i + 1]].position;
+        auto vert3 = data[indices[i + 2]].position;
+        normals[indices[i]] += glm::cross(vert1 - vert2, vert1 - vert3);
+        normals[indices[i + 1]] += glm::cross(vert2 - vert3, vert2 - vert1);
+        normals[indices[i + 2]] += glm::cross(vert3 - vert1, vert3 - vert2);
+    }
+    for (int vertex = 0; vertex < getSize(); ++vertex) {
+        data[vertex].normal = glm::normalize(normals[vertex]);
+    }
+
+    // Generate VAO
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    // Vertex data
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, getSize() * sizeof(Vertex), getData(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+    glEnableVertexAttribArray(0);
+
+    // Normals
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)sizeof(glm::vec3));
+    glEnableVertexAttribArray(1);
 
     // Indices data
     glGenBuffers(1, &ibo);

@@ -15,7 +15,7 @@ const char *vertShaderSource = R"(
 #version 330 core
 
 layout(location = 0) in vec3 aPos;
-// layout(location = 1) in vec3 aNormal;
+layout(location = 1) in vec3 aNormal;
 // layout(location = 2) in vec2 aUv;
 
 uniform mat4 model;
@@ -48,7 +48,7 @@ struct Light {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
-}
+};
 
 // in vec3 normal;
 // in vec2 uv;
@@ -187,10 +187,10 @@ float diamondStep(Mesh *mesh, int x, int y, int stepSize) {
     int xMax = x + stepSize;
     int yMin = y - stepSize;
     int yMax = y + stepSize;
-    averageHeight += mesh->getValue(xMin, yMin).y; // Top left
-    averageHeight += mesh->getValue(xMin, yMax).y; // Bottom left
-    averageHeight += mesh->getValue(xMax, yMin).y; // Top right
-    averageHeight += mesh->getValue(xMax, yMax).y; // Bottom right
+    averageHeight += mesh->getValue(xMin, yMin).position.y; // Top left
+    averageHeight += mesh->getValue(xMin, yMax).position.y; // Bottom left
+    averageHeight += mesh->getValue(xMax, yMin).position.y; // Top right
+    averageHeight += mesh->getValue(xMax, yMax).position.y; // Bottom right
     return averageHeight / 4.f;
 }
 
@@ -210,19 +210,19 @@ float squareStep(Mesh *vertices, int x, int y, int stepSize) {
     int yMin = y - stepSize;
     int yMax = y + stepSize;
     if (xMin >= 0) {
-        averageHeight += vertices->getValue(xMin, y).y; // Left
+        averageHeight += vertices->getValue(xMin, y).position.y; // Left
         count++;
     }
     if (xMax < MAP_SIZE) {
-        averageHeight += vertices->getValue(xMax, y).y; // Right
+        averageHeight += vertices->getValue(xMax, y).position.y; // Right
         count++;
     }
     if (yMin >= 0) {
-        averageHeight += vertices->getValue(x, yMin).y; // Top
+        averageHeight += vertices->getValue(x, yMin).position.y; // Top
         count++;
     }
     if (yMax < MAP_SIZE) {
-        averageHeight += vertices->getValue(x, yMax).y; // Bottom
+        averageHeight += vertices->getValue(x, yMax).position.y; // Bottom
         count++;
     }
     return averageHeight / count;
@@ -241,7 +241,7 @@ void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
 
     for (int x = halfStepSize; x < MAP_SIZE - 1; x += stepSize) {
         for (int y = halfStepSize; y < MAP_SIZE - 1; y += stepSize) {
-            mesh->getValue(x, y).y = diamondStep(mesh, x, y, halfStepSize) + randomInRange(-randMax, randMax);
+            mesh->getValue(x, y).position.y = diamondStep(mesh, x, y, halfStepSize) + randomInRange(-randMax, randMax);
         }
     }
 
@@ -249,7 +249,7 @@ void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
     for (int x = 0; x <= MAP_SIZE - 1; x += halfStepSize) {
         offset = !offset;
         for (int y = offset ? halfStepSize : 0; y <= MAP_SIZE - 1; y += stepSize) {
-            mesh->getValue(x, y).y = squareStep(mesh, x, y, halfStepSize) + randomInRange(-randMax, randMax);
+            mesh->getValue(x, y).position.y = squareStep(mesh, x, y, halfStepSize) + randomInRange(-randMax, randMax);
         }
     }
 
@@ -270,10 +270,10 @@ void generateTerrain(std::vector<Mesh *> &terrain) {
     float maxRand = 1.f;
     float h = 1.f;
 
-    mesh->getValue(0, 0).y = randomInRange(-maxRand, maxRand);
-    mesh->getValue(0, MAP_SIZE - 1).y = randomInRange(-maxRand, maxRand);
-    mesh->getValue(MAP_SIZE - 1, MAP_SIZE - 1).y = randomInRange(-maxRand, maxRand);
-    mesh->getValue(MAP_SIZE - 1, 0).y = randomInRange(-maxRand, maxRand);
+    mesh->getValue(0, 0).position.y = randomInRange(-maxRand, maxRand);
+    mesh->getValue(0, MAP_SIZE - 1).position.y = randomInRange(-maxRand, maxRand);
+    mesh->getValue(MAP_SIZE - 1, MAP_SIZE - 1).position.y = randomInRange(-maxRand, maxRand);
+    mesh->getValue(MAP_SIZE - 1, 0).position.y = randomInRange(-maxRand, maxRand);
     diamondSquare(mesh, h, MAP_SIZE - 1, maxRand);
 
     mesh->buildBuffers();
