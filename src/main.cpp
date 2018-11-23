@@ -8,7 +8,7 @@
 #include "Shader.h"
 
 // REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
-#define MAP_SIZE 65
+#define MAP_SIZE 5
 
 const char *vertShaderSource = R"(
 #version 330 core
@@ -230,8 +230,8 @@ void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
 
 void generateTerrain(std::vector<Mesh *> &terrain) {
     auto mesh = new Mesh(MAP_SIZE, MAP_SIZE);
-    float maxRand = 10.f;
-    float h = .9f;
+    float maxRand = 1.f;
+    float h = 1.f;
 
     mesh->getValue(0, 0).y = randomInRange(-maxRand, maxRand);
     mesh->getValue(0, MAP_SIZE - 1).y = randomInRange(-maxRand, maxRand);

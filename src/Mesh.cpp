@@ -3,7 +3,7 @@
 #include <iostream>
 #include "Mesh.h"
 
-// #define TRIANGLE_STRIP
+#define TRIANGLE_STRIP
 
 Mesh::Mesh(unsigned short width, unsigned short height) : width(width), height(height) {
     data = new glm::vec3[width * height];
@@ -54,9 +54,9 @@ void Mesh::buildBuffers() {
     glEnableVertexAttribArray(0);
 
 #ifdef TRIANGLE_STRIP
-    // Generate triangle strip indices todo get this working correctly
+    // Generate triangle strip indices
     mode = GL_TRIANGLE_STRIP;
-    for (unsigned short y = 0; y < height; ++y) {
+    for (unsigned short y = 0; y < height - 1; ++y) {
         for (unsigned short x = 0; x < width; ++x) {
             indices.push_back((y * height) + x);
             indices.push_back((y * height) + x + height);
