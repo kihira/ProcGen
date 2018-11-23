@@ -3,14 +3,16 @@
 #include <iostream>
 #include "Mesh.h"
 
+// #define TRIANGLE_STRIP
+
 Mesh::Mesh(unsigned short width, unsigned short height) : width(width), height(height) {
     data = new glm::vec3[width * height];
-    mode = GL_TRIANGLE_STRIP;
 
     // Generate xz coords
     for (int x = 0; x < width; ++x) {
         for (int z = 0; z < height; ++z) {
             getValue(x, z).x = x;
+            getValue(x, z).y = 0.f;
             getValue(x, z).z = z;
         }
     }
@@ -51,7 +53,9 @@ void Mesh::buildBuffers() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(0);
 
-    // Generate indices
+#ifdef TRIANGLE_STRIP
+    // Generate triangle strip indices todo get this working correctly
+    mode = GL_TRIANGLE_STRIP;
     for (unsigned short y = 0; y < height; ++y) {
         for (unsigned short x = 0; x < width; ++x) {
             indices.push_back((y * height) + x);
@@ -65,6 +69,21 @@ void Mesh::buildBuffers() {
     // Remove last two which are degenerates
     indices.pop_back();
     indices.pop_back();
+#else
+    // Generate triangle indices
+    mode = GL_TRIANGLES;
+    for (unsigned short y = 0; y < height - 1; ++y) {
+        for (unsigned short x = 0; x < width - 1; ++x) {
+            indices.push_back((y * height) + x);
+            indices.push_back((y * height) + x + height);
+            indices.push_back((y * height) + x + static_cast<unsigned short>(1));
+
+            indices.push_back((y * height) + x + static_cast<unsigned short>(1));
+            indices.push_back((y * height) + x + height);
+            indices.push_back((y * height) + x + height + static_cast<unsigned short>(1));
+        }
+    }
+#endif
 
     // Indices data
     glGenBuffers(1, &ibo);

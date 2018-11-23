@@ -3,10 +3,12 @@
 #include <GLFW/glfw3.h>
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
+#include <random>
 #include "Mesh.h"
 #include "Shader.h"
 
-#define MAP_SIZE 5
+// REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
+#define MAP_SIZE 65
 
 const char *vertShaderSource = R"(
 #version 330 core
@@ -42,6 +44,7 @@ void main() {
 }
 )";
 
+std::default_random_engine generator;
 Shader *shader;
 
 struct Camera {
@@ -144,40 +147,21 @@ void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
 }
 
 float randomInRange(float min, float max) {
-    return min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX)/(max - min);
+    std::uniform_real_distribution<float> distribution(min, max);
+    return distribution(generator);
 }
 
-// todo wrap around
-// todo does this actually ever wrap around?
 float diamondStep(Mesh *mesh, int x, int y, int stepSize) {
     float averageHeight = 0.f;
-    int count = 0;
-    int xMin, xMax, yMin, yMax = 0;
-    xMin = x - stepSize;
-    xMax = x + stepSize;
-    yMin = y - stepSize;
-    yMax = y + stepSize;
-    if (xMin >= 0) {
-        if (yMin >= 0) {
-            averageHeight += mesh->getValue(xMin, yMin).y; // Top left
-            count++;
-        }
-        if (yMax < MAP_SIZE) {
-            averageHeight += mesh->getValue(xMin, yMax).y; // Bottom left
-            count++;
-        }
-    }
-    if (xMax < MAP_SIZE) {
-        if (yMin >= 0) {
-            averageHeight += mesh->getValue(xMax, yMin).y; // Top right
-            count++;
-        }
-        if (yMax < MAP_SIZE) {
-            averageHeight += mesh->getValue(xMax, yMax).y; // Bottom right
-            count++;
-        }
-    }
-    return averageHeight / count;
+    int xMin = x - stepSize;
+    int xMax = x + stepSize;
+    int yMin = y - stepSize;
+    int yMax = y + stepSize;
+    averageHeight += mesh->getValue(xMin, yMin).y; // Top left
+    averageHeight += mesh->getValue(xMin, yMax).y; // Bottom left
+    averageHeight += mesh->getValue(xMax, yMin).y; // Top right
+    averageHeight += mesh->getValue(xMax, yMax).y; // Bottom right
+    return averageHeight / 4.f;
 }
 
 // todo wrap around
@@ -191,11 +175,10 @@ float diamondStep(Mesh *mesh, int x, int y, int stepSize) {
 float squareStep(Mesh *vertices, int x, int y, int stepSize) {
     float averageHeight = 0.f;
     int count = 0;
-    int xMin, xMax, yMin, yMax = 0;
-    xMin = x - stepSize;
-    xMax = x + stepSize;
-    yMin = y - stepSize;
-    yMax = y + stepSize;
+    int xMin = x - stepSize;
+    int xMax = x + stepSize;
+    int yMin = y - stepSize;
+    int yMax = y + stepSize;
     if (xMin >= 0) {
         averageHeight += vertices->getValue(xMin, y).y; // Left
         count++;
@@ -226,9 +209,9 @@ void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
     if (stepSize <= 1) return;
     int halfStepSize = stepSize / 2;
 
-    for (int x = stepSize / 2; x < MAP_SIZE - 1; x += stepSize) {
-        for (int y = stepSize / 2; y < MAP_SIZE - 1; y += stepSize) {
-            mesh->getValue(x, y).y = diamondStep(mesh, x, y, halfStepSize) * randomInRange(-randMax, randMax);
+    for (int x = halfStepSize; x < MAP_SIZE - 1; x += stepSize) {
+        for (int y = halfStepSize; y < MAP_SIZE - 1; y += stepSize) {
+            mesh->getValue(x, y).y = diamondStep(mesh, x, y, halfStepSize) + randomInRange(-randMax, randMax);
         }
     }
 
@@ -236,25 +219,25 @@ void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
     for (int x = 0; x <= MAP_SIZE - 1; x += halfStepSize) {
         offset = !offset;
         for (int y = offset ? halfStepSize : 0; y <= MAP_SIZE - 1; y += stepSize) {
-            mesh->getValue(x, y).y = squareStep(mesh, x, y, halfStepSize) * randomInRange(-randMax, randMax);
+            mesh->getValue(x, y).y = squareStep(mesh, x, y, halfStepSize) + randomInRange(-randMax, randMax);
         }
     }
 
-    randMax = randMax * powf(2, h);
-    stepSize = stepSize / 2;
+    randMax = randMax * powf(2, -h);
+    stepSize = halfStepSize;
     diamondSquare(mesh, h, stepSize, randMax);
 }
 
 void generateTerrain(std::vector<Mesh *> &terrain) {
     auto mesh = new Mesh(MAP_SIZE, MAP_SIZE);
-    float randHeight = static_cast<float>(rand() % 10) / 10.f;
-    std::cout << "Starting height: " << randHeight << std::endl;
+    float maxRand = 10.f;
+    float h = .9f;
 
-    mesh->getValue(0, 0).y = randHeight;
-    mesh->getValue(0, MAP_SIZE - 1).y = randHeight;
-    mesh->getValue(MAP_SIZE - 1, MAP_SIZE - 1).y = randHeight;
-    mesh->getValue(MAP_SIZE - 1, 0).y = randHeight;
-    diamondSquare(mesh, 1.f, MAP_SIZE - 1, 1.f);
+    mesh->getValue(0, 0).y = randomInRange(-maxRand, maxRand);
+    mesh->getValue(0, MAP_SIZE - 1).y = randomInRange(-maxRand, maxRand);
+    mesh->getValue(MAP_SIZE - 1, MAP_SIZE - 1).y = randomInRange(-maxRand, maxRand);
+    mesh->getValue(MAP_SIZE - 1, 0).y = randomInRange(-maxRand, maxRand);
+    diamondSquare(mesh, h, MAP_SIZE - 1, maxRand);
 
     mesh->buildBuffers();
     terrain.push_back(mesh);
@@ -264,7 +247,6 @@ int main() {
     glfwSetErrorCallback(glfwErrorCallback);
 
     GLFWwindow *window;
-    GLuint vao, vertexBuffer, vertexShader, fragmentShader, program, raycastTexture;
 
     if (!glfwInit()) {
         std::cerr << "Failed to init GLFW!" << std::endl;
@@ -305,7 +287,7 @@ int main() {
     // Set some default parameters
     glClearColor(.7f, .7f, .7f, 1.f);
     glCullFace(GL_BACK);
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // Generate terrain
     std::vector<Mesh *> terrain;
