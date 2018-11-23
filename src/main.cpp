@@ -6,6 +6,7 @@
 #include <random>
 #include "Mesh.h"
 #include "Shader.h"
+#include "Light.h"
 
 // REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
 #define MAP_SIZE 5
@@ -34,17 +35,39 @@ void main() {
 const char *fragShaderSource = R"(
 #version 330 core
 
+struct Material {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    vec3 emissive;
+    float shininess;
+};
+
+struct Light {
+    vec3 position;
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+}
+
 // in vec3 normal;
 // in vec2 uv;
+
+uniform vec3 globalAmbient;
+uniform Material material;
+uniform Light light;
 
 out vec4 colour;
 
 void main() {
-    colour = vec4(1, 1, 1, 1);
+    vec3 ambient = globalAmbient * material.ambient * light.ambient;
+
+    colour = vec4(ambient, 1);
 }
 )";
 
 std::default_random_engine generator;
+glm::vec3 globalAmbient(.2f, .2f, .2f);
 Shader *shader;
 
 struct Camera {
@@ -84,6 +107,13 @@ struct Camera {
     }
 
 } camera;
+
+const Light light {
+    glm::vec3(1.f, 1.f, 0.f),
+    glm::vec3(0.f),
+    glm::vec3(1.f),
+    glm::vec3(1.f),
+};
 
 void glErrorCheck() {
     GLenum err = glGetError();
@@ -229,7 +259,14 @@ void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
 }
 
 void generateTerrain(std::vector<Mesh *> &terrain) {
-    auto mesh = new Mesh(MAP_SIZE, MAP_SIZE);
+    Material material = {
+            glm::vec3(1.f, 1.f, 1.f),
+            glm::vec3(1.f, 1.f, 1.f),
+            glm::vec3(1.f, 1.f, 1.f),
+            glm::vec3(1.f, 1.f, 1.f),
+            0.f
+    };
+    auto mesh = new Mesh(MAP_SIZE, MAP_SIZE, material);
     float maxRand = 1.f;
     float h = 1.f;
 
@@ -278,6 +315,8 @@ int main() {
     // Generate shaders
     shader = new Shader(vertShaderSource, fragShaderSource);
     shader->use();
+    shader->setGlobalAmbient(globalAmbient);
+    shader->setLight(light);
 
     glfwSetFramebufferSizeCallback(window, glfwFramebufferSizeCallback);
     glfwSetKeyCallback(window, glfwKeyCallback);
@@ -287,7 +326,7 @@ int main() {
     // Set some default parameters
     glClearColor(.7f, .7f, .7f, 1.f);
     glCullFace(GL_BACK);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glEnable(GL_DEPTH_TEST);
 
     // Generate terrain
     std::vector<Mesh *> terrain;

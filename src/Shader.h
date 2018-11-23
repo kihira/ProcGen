@@ -6,6 +6,9 @@
 #include <glad/glad.h>
 #include <glm.hpp>
 
+class Material; // Forward deceleration
+class Light;
+
 class Shader {
 private:
     GLuint program;
@@ -19,6 +22,12 @@ public:
     void use();
 
     void setUniform(const char *name, glm::mat4 value);
+
+    void setMaterial(Material &material);
+
+    void setGlobalAmbient(glm::vec3 &colour);
+
+    void setLight(const Light &light);
 };
 
 

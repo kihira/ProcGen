@@ -5,7 +5,7 @@
 
 #define TRIANGLE_STRIP
 
-Mesh::Mesh(unsigned short width, unsigned short height) : width(width), height(height) {
+Mesh::Mesh(unsigned short width, unsigned short height, Material &material) : width(width), height(height), material(material) {
     data = new glm::vec3[width * height];
 
     // Generate xz coords
@@ -37,6 +37,7 @@ glm::vec3 *Mesh::getData() {
 
 void Mesh::render(Shader *shader) {
     shader->setUniform("model", modelMatrix);
+    shader->setMaterial(material);
 
     glBindVertexArray(vao);
     glDrawElements(mode, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_SHORT, nullptr);

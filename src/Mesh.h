@@ -8,6 +8,20 @@
 #include <vector>
 #include "Shader.h"
 
+struct Material {
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    glm::vec3 emmisive;
+    float shininess;
+};
+
+struct Vertex {
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 uv;
+};
+
 /**
  * Effectively a 1D array that is accessible as a 2D one. Good for quickly uploaded data to OpenGL
  */
@@ -17,6 +31,7 @@ private:
     GLuint vbo; // Vertices data
     GLuint ibo; // Indices data
     GLenum mode;
+    Material material;
     std::vector<unsigned short> indices;
 
     // World space data
@@ -29,7 +44,7 @@ private:
     unsigned short width, height;
     glm::vec3 *data;
 public:
-    Mesh(unsigned short  width, unsigned short  height);
+    Mesh(unsigned short width, unsigned short height, Material &material);
 
     glm::vec3 &getValue(int x, int y);
 
