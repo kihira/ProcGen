@@ -4,6 +4,7 @@
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #include <random>
+#include <stb_image.h>
 #include "Mesh.h"
 #include "Shader.h"
 #include "Light.h"
@@ -185,6 +186,36 @@ void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
     camera.updateProjectionMatrix(width, height);
 }
 
+/**
+ * Loads a texture from file into OpenGL
+ * @param filePath Path to the texutre
+ * @return OpenGL id for the texture. 0 if failed to load
+ */
+GLuint loadTexture(const char *filePath) {
+    GLuint textureId;
+    int width, height, channels;
+    auto imageData = stbi_load(filePath, &width, &height, &channels, 4);
+
+    if (imageData == nullptr) {
+        std::cerr << "Failed to load texture file: " << filePath << std::endl;
+        return 0;
+    }
+
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    stbi_image_free(imageData);
+    return textureId;
+}
+
 float diamondStep(Mesh *mesh, int x, int y, int stepSize) {
     float averageHeight = 0.f;
     int xMin = x - stepSize;
@@ -198,7 +229,6 @@ float diamondStep(Mesh *mesh, int x, int y, int stepSize) {
     return averageHeight / 4.f;
 }
 
-// todo wrap around
 /**
  * Calculates the average height for the provided vertex based on a diamond pattern around it
  * @param vertices

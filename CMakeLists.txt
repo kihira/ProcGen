@@ -20,4 +20,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE libs/glad/include)
 target_link_libraries(${PROJECT_NAME} glad)
 
 # GLM
-include_directories(${PROJECT_NAME} libs/glm)
+target_include_directories(${PROJECT_NAME} PRIVATE libs/glm)
+
+# stb
+target_include_directories(${PROJECT_NAME} PRIVATE libs/stb)
