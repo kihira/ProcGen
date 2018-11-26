@@ -79,10 +79,17 @@ void Mesh::buildBuffers() {
     }
 #endif
 
+    // Generate UVs
+    float uScale = static_cast<float>(width) * .1f;
+    float vScale = static_cast<float>(height) * .1f;
+    for (int x = 0; x < width; ++x) {
+        for (int y = 0; y < height; ++y) {
+            getValue(x, y).uv.x = uScale * (static_cast<float>(x) / static_cast<float>(width - 1));
+            getValue(x, y).uv.y = vScale * (static_cast<float>(y) / static_cast<float>(height - 1));
+        }
+    }
+
     // Generate normals
-    // Optimisations done:
-    // - Store normal in vertex and just modify that instead of an external loop
-    // todo could optimise this by putting it into the indices loop
 
     // Normals per quad (which is made of two triangles)
     glm::vec3 quadNormals[width - 1][height - 1][2];
@@ -171,8 +178,11 @@ void Mesh::buildBuffers() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
     glEnableVertexAttribArray(0);
     // Normals
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)sizeof(glm::vec3));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)sizeof(Vertex::position));
     glEnableVertexAttribArray(1);
+    // UV
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(sizeof(Vertex::position) + sizeof(Vertex::normal)));
+    glEnableVertexAttribArray(2);
 
     // Indices data
     glGenBuffers(1, &ibo);

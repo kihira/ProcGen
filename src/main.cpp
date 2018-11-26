@@ -233,6 +233,11 @@ int main() {
     std::vector<Mesh *> terrain;
     generateTerrain(terrain);
 
+    // Load and bind terrain texture TODO temp
+    auto grassyRockTexture = loadTexture("assets/textures/rock-grassy.jpg");
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, grassyRockTexture);
+
     // Initialise camera
     glViewport(0, 0, 1080, 720);
     camera.updateProjectionMatrix(1080, 720);
