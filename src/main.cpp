@@ -84,13 +84,13 @@ struct Camera {
     float pitch = 0.f;
     // Camera settings
     float fov = 90.f;
-    float near = .1f;
-    float far = 1000.f;
+    float near_ = .1f;
+    float far_ = 1000.f;
     float translateSpeed = .1f;
     float rotationSpeed = .25f;
 
     void updateProjectionMatrix(const int width, const int height) {
-        projMatrix = glm::perspective(glm::radians(fov), (float) width / (float) height, near, far);
+        projMatrix = glm::perspective(glm::radians(fov), (float) width / (float) height, near_, far_);
         shader->setUniform("projection", projMatrix);
     }
 

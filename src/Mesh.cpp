@@ -53,7 +53,7 @@ void Mesh::buildBuffers() {
             indices.push_back((y * height) + x + height);
         }
         // Degenerate triangles
-        indices.push_back((y * height) + width + height - (ushort) 1);
+        indices.push_back((y * height) + width + height - (unsigned short) 1);
         indices.push_back((y * height) + width);
     }
 
