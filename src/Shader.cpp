@@ -105,3 +105,7 @@ void Shader::setLight(const Light &light) {
     glUniform3fv(glGetUniformLocation(program, "light.diffuse"), 1, glm::value_ptr(light.diffuse));
     glUniform3fv(glGetUniformLocation(program, "light.specular"), 1, glm::value_ptr(light.specular));
 }
+
+void Shader::setUniform(const char *name, int value) {
+    glUniform1i(glGetUniformLocation(program, name), value);
+}

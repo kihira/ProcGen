@@ -234,9 +234,16 @@ int main() {
     generateTerrain(terrain);
 
     // Load and bind terrain texture TODO temp
+    auto sandTexture = loadTexture("assets/textures/sand.jpg");
     auto grassyRockTexture = loadTexture("assets/textures/rock-grassy.jpg");
+
     glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, sandTexture);
+    shader->setUniform("textures[0]", 0);
+
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, grassyRockTexture);
+    shader->setUniform("textures[1]", 1);
 
     // Initialise camera
     glViewport(0, 0, 1080, 720);

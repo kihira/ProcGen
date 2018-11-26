@@ -22,17 +22,34 @@ in vec2 uv;
 uniform vec3 globalAmbient;
 uniform Material material;
 uniform Light light;
-uniform sampler2D tex;
+uniform sampler2D textures[2];
 
 out vec4 colour;
 
 void main() {
     vec3 lightDir = normalize(light.position);
-    vec4 diffuse = vec4(material.diffuse * light.diffuse, 1.f) * texture(tex, uv);
+    vec4 diffuse = vec4(material.diffuse * light.diffuse, 1.f);
 
-//    if (yPos < -10.f) {
-//        diffuse = vec3(0.93f, 0.788f, 0.686f);
-//    }
+    const float endSand = -11.f;
+    const float startGrassRocks = -10.f;
+
+    // todo need to map this to between 0 - 1
+    float yScale = yPos;
+
+    // Sand only
+    if (yScale < endSand) {
+        diffuse *= texture(textures[0], uv);
+    }
+    // Mix sand and grass
+    else if (yScale < startGrassRocks) {
+        yScale -= endSand;
+        yScale /= startGrassRocks - endSand;
+
+        diffuse *= mix(texture(textures[0], uv), texture(textures[1], uv), yScale);
+    }
+    else {
+        diffuse *= texture(textures[1], uv);
+    }
 
     colour = max(dot(normal, lightDir), 0.f) * diffuse;
 }
