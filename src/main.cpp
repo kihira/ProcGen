@@ -23,10 +23,12 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform mat3 normalMat;
 
+out float yPos;
 out vec3 normal;
-out vec2 uv;
+// out vec2 uv;
 
 void main() {
+    yPos = aPos.y;
     normal = normalize(normalMat * aNormal);
     // uv = aUv;
     gl_Position = projection * view * model * vec4(aPos, 1.f);
@@ -51,6 +53,7 @@ struct Light {
     vec3 specular;
 };
 
+in float yPos;
 in vec3 normal;
 // in vec2 uv;
 
@@ -62,9 +65,13 @@ out vec4 colour;
 
 void main() {
     vec3 lightDir = normalize(vec3(light.position));
-    vec3 ambient = material.ambient * light.ambient;
+    vec3 diffuse = material.diffuse * light.diffuse;
 
-    colour = vec4(max(dot(normal, lightDir), 0.f) * ambient, 1);
+    if (yPos < -10.f) {
+        diffuse = vec3(0.93f, 0.788f, 0.686f);
+    }
+
+    colour = vec4(max(dot(normal, lightDir), 0.f) * diffuse, 1);
 }
 )";
 
