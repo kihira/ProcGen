@@ -9,7 +9,7 @@
 #include "Light.h"
 
 // REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
-#define MAP_SIZE 5
+#define MAP_SIZE 33
 
 const char *vertShaderSource = R"(
 #version 330 core

@@ -27,6 +27,9 @@ Mesh::Mesh(unsigned short width, unsigned short height, Material &material) : wi
 }
 
 Vertex &Mesh::getValue(int x, int y) {
+    assert(x < width);
+    assert(y < height);
+
     return data[width * y + x];
 }
 
@@ -81,17 +84,83 @@ void Mesh::buildBuffers() {
     // - Store normal in vertex and just modify that instead of an external loop
     // todo could optimise this by putting it into the indices loop
 
-    for (int i = 0; i < indices.size() - 2; ++i) {
-        auto vert1 = data[indices[i]].position;
-        auto vert2 = data[indices[i + 1]].position;
-        auto vert3 = data[indices[i + 2]].position;
-        data[indices[i]].normal += glm::cross(vert1 - vert2, vert1 - vert3);
-        data[indices[i + 1]].normal += glm::cross(vert2 - vert3, vert2 - vert1);
-        data[indices[i + 2]].normal += glm::cross(vert3 - vert1, vert3 - vert2);
+    // Normals per quad (which is made of two triangles)
+    glm::vec3 quadNormals[width - 1][height - 1][2];
+
+    // Calculate the normals per quad (and their two triangles)
+    for (int x = 0; x < width - 1; ++x) {
+        for (int y = 0; y < height - 1; ++y) {
+            // First triangle
+            auto vert1 = getValue(x, y).position;
+            auto vert2 = getValue(x, y+1).position;
+            auto vert3 = getValue(x+1, y).position;
+
+            auto normal = glm::cross(vert1 - vert2, vert1 - vert3);
+            normal += glm::cross(vert2 - vert3, vert2 - vert1);
+            normal += glm::cross(vert3 - vert1, vert3 - vert2);
+
+            quadNormals[x][y][0] = normal;
+            std::cout << "Quad " << x << ", " << y << " triangle 1: " << normal.x << " " << normal.y  << " " << normal.z << std::endl;
+
+            // Second triangle
+            vert1 = getValue(x+1, y+1).position;
+            vert2 = getValue(x+1, y).position;
+            vert3 = getValue(x, y+1).position;
+
+            normal = glm::cross(vert1 - vert2, vert1 - vert3);
+            normal += glm::cross(vert2 - vert3, vert2 - vert1);
+            normal += glm::cross(vert3 - vert1, vert3 - vert2);
+
+            quadNormals[x][y][1] = normal;
+            std::cout << "Quad " << x << ", " << y << " triangle 2: " << normal.x << " " << normal.y  << " " << normal.z << std::endl;
+        }
     }
-    for (int vertex = 0; vertex < getSize(); ++vertex) {
-        data[vertex].normal = glm::normalize(data[vertex].normal);
+
+    // Calculate normal per vertex based upon previous calculation
+    for (int x = 0; x < width; ++x) {
+        for (int y = 0; y < height; ++y) {
+            glm::vec3 normal(0.f);
+            if (y > 0) {
+                // Get top left quad, second triangle
+                if (x > 0) {
+                    normal += quadNormals[x-1][y-1][1];
+                }
+                // Top right quad, both triangles
+                if (x < width - 1) {
+                    normal += quadNormals[x][y-1][0];
+                    normal += quadNormals[x][y-1][1];
+                }
+            }
+            if (y < height - 1) {
+                // Bottom left quad, both triangles
+                if (x > 0) {
+                    normal += quadNormals[x-1][y][0];
+                    normal += quadNormals[x-1][y][1];
+                }
+                // Bottom right quad, first triangle
+                if (x < width - 1) {
+                    normal += quadNormals[x][y][0];
+                }
+            }
+
+            // Set actual normal
+            normal = glm::normalize(normal);
+            getValue(x, y).normal = normal;
+            std::cout << "Vertex " << x << ", " << y << " normal: " << normal.x << " " << normal.y  << " " << normal.z << std::endl;
+        }
     }
+
+//    for (int i = 0; i < indices.size() - 2; ++i) {
+//        auto vert1 = data[indices[i]].position;
+//        auto vert2 = data[indices[i + 1]].position;
+//        auto vert3 = data[indices[i + 2]].position;
+//        data[indices[i]].normal += glm::cross(vert1 - vert2, vert1 - vert3);
+//        data[indices[i + 1]].normal += glm::cross(vert2 - vert3, vert2 - vert1);
+//        data[indices[i + 2]].normal += glm::cross(vert3 - vert1, vert3 - vert2);
+//    }
+//    for (int vertex = 0; vertex < getSize(); ++vertex) {
+//        data[vertex].normal = glm::normalize(data[vertex].normal);
+//    }
 
     // Generate VAO
     glGenVertexArrays(1, &vao);
