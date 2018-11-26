@@ -206,28 +206,27 @@ float diamondStep(Mesh *mesh, int x, int y, int stepSize) {
  */
 float squareStep(Mesh *vertices, int x, int y, int stepSize) {
     float averageHeight = 0.f;
-    int count = 0;
     int xMin = x - stepSize;
     int xMax = x + stepSize;
     int yMin = y - stepSize;
     int yMax = y + stepSize;
-    if (xMin >= 0) {
-        averageHeight += vertices->getValue(xMin, y).position.y; // Left
-        count++;
+    if (xMin < 0) {
+        xMin = MAP_SIZE - abs(xMin);
     }
-    if (xMax < MAP_SIZE) {
-        averageHeight += vertices->getValue(xMax, y).position.y; // Right
-        count++;
+    averageHeight += vertices->getValue(xMin, y).position.y; // Left
+    if (xMax >= MAP_SIZE) {
+        xMax = xMax - MAP_SIZE;
     }
-    if (yMin >= 0) {
-        averageHeight += vertices->getValue(x, yMin).position.y; // Top
-        count++;
+    averageHeight += vertices->getValue(xMax, y).position.y; // Right
+    if (yMin < 0) {
+        yMin = MAP_SIZE - abs(yMin);
     }
-    if (yMax < MAP_SIZE) {
-        averageHeight += vertices->getValue(x, yMax).position.y; // Bottom
-        count++;
+    averageHeight += vertices->getValue(x, yMin).position.y; // Top
+    if (yMax >= MAP_SIZE) {
+        yMax = yMax - MAP_SIZE;
     }
-    return averageHeight / count;
+    averageHeight += vertices->getValue(x, yMax).position.y; // Bottom
+    return averageHeight / 4.f;
 }
 
 /**
@@ -269,7 +268,7 @@ void generateTerrain(std::vector<Mesh *> &terrain) {
             0.f
     };
     auto mesh = new Mesh(MAP_SIZE, MAP_SIZE, material);
-    float maxRand = 1.f;
+    float maxRand = 7.f;
     float h = 1.f;
 
     mesh->getValue(0, 0).position.y = randomInRange(-maxRand, maxRand);

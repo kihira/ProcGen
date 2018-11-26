@@ -100,7 +100,6 @@ void Mesh::buildBuffers() {
             normal += glm::cross(vert3 - vert1, vert3 - vert2);
 
             quadNormals[x][y][0] = normal;
-            std::cout << "Quad " << x << ", " << y << " triangle 1: " << normal.x << " " << normal.y  << " " << normal.z << std::endl;
 
             // Second triangle
             vert1 = getValue(x+1, y+1).position;
@@ -112,7 +111,6 @@ void Mesh::buildBuffers() {
             normal += glm::cross(vert3 - vert1, vert3 - vert2);
 
             quadNormals[x][y][1] = normal;
-            std::cout << "Quad " << x << ", " << y << " triangle 2: " << normal.x << " " << normal.y  << " " << normal.z << std::endl;
         }
     }
 
@@ -146,7 +144,6 @@ void Mesh::buildBuffers() {
             // Set actual normal
             normal = glm::normalize(normal);
             getValue(x, y).normal = normal;
-            std::cout << "Vertex " << x << ", " << y << " normal: " << normal.x << " " << normal.y  << " " << normal.z << std::endl;
         }
     }
 
