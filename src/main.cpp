@@ -99,9 +99,9 @@ struct Camera {
         pitch = glm::clamp(pitch, -89.9f, 89.9f);
 
         // Calculate looking direction
-        direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-        direction.y = sin(glm::radians(-pitch));
-        direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        direction.x = cosf(glm::radians(yaw)) * cosf(glm::radians(pitch));
+        direction.y = sinf(glm::radians(-pitch));
+        direction.z = sinf(glm::radians(yaw)) * cosf(glm::radians(pitch));
         direction = glm::normalize(direction);
 
         viewMatrix = glm::lookAt(position, position + direction, glm::vec3(0.f, 1.f, 0.f));
@@ -178,11 +178,6 @@ void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
     camera.updateProjectionMatrix(width, height);
 }
 
-float randomInRange(float min, float max) {
-    std::uniform_real_distribution<float> distribution(min, max);
-    return distribution(generator);
-}
-
 float diamondStep(Mesh *mesh, int x, int y, int stepSize) {
     float averageHeight = 0.f;
     int xMin = x - stepSize;
@@ -239,10 +234,11 @@ float squareStep(Mesh *vertices, int x, int y, int stepSize) {
 void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
     if (stepSize <= 1) return;
     int halfStepSize = stepSize / 2;
+    std::uniform_real_distribution<float> distribution(-randMax, randMax);
 
     for (int x = halfStepSize; x < MAP_SIZE - 1; x += stepSize) {
         for (int y = halfStepSize; y < MAP_SIZE - 1; y += stepSize) {
-            mesh->getValue(x, y).position.y = diamondStep(mesh, x, y, halfStepSize) + randomInRange(-randMax, randMax);
+            mesh->getValue(x, y).position.y = diamondStep(mesh, x, y, halfStepSize) + distribution(generator);
         }
     }
 
@@ -250,7 +246,7 @@ void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
     for (int x = 0; x <= MAP_SIZE - 1; x += halfStepSize) {
         offset = !offset;
         for (int y = offset ? halfStepSize : 0; y <= MAP_SIZE - 1; y += stepSize) {
-            mesh->getValue(x, y).position.y = squareStep(mesh, x, y, halfStepSize) + randomInRange(-randMax, randMax);
+            mesh->getValue(x, y).position.y = squareStep(mesh, x, y, halfStepSize) + distribution(generator);
         }
     }
 
@@ -270,11 +266,13 @@ void generateTerrain(std::vector<Mesh *> &terrain) {
     auto mesh = new Mesh(MAP_SIZE, MAP_SIZE, material);
     float maxRand = 7.f;
     float h = 1.f;
+    std::uniform_real_distribution<float> distribution(-maxRand, maxRand);
+    float cornerStart = distribution(generator);
 
-    mesh->getValue(0, 0).position.y = randomInRange(-maxRand, maxRand);
-    mesh->getValue(0, MAP_SIZE - 1).position.y = randomInRange(-maxRand, maxRand);
-    mesh->getValue(MAP_SIZE - 1, MAP_SIZE - 1).position.y = randomInRange(-maxRand, maxRand);
-    mesh->getValue(MAP_SIZE - 1, 0).position.y = randomInRange(-maxRand, maxRand);
+    mesh->getValue(0, 0).position.y = cornerStart;
+    mesh->getValue(0, MAP_SIZE - 1).position.y = cornerStart;
+    mesh->getValue(MAP_SIZE - 1, MAP_SIZE - 1).position.y = cornerStart;
+    mesh->getValue(MAP_SIZE - 1, 0).position.y = cornerStart;
     diamondSquare(mesh, h, MAP_SIZE - 1, maxRand);
 
     mesh->buildBuffers();
