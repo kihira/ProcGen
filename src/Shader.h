@@ -17,7 +17,7 @@ private:
 
     bool checkShaderCompile(GLuint shader);
 public:
-    Shader(const char *vertexSrc, const char *fragSrc);
+    Shader(const char *vertexFile, const char *fragFile);
 
     void use();
 

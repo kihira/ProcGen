@@ -1,3 +1,5 @@
+#define STB_IMAGE_IMPLEMENTATION
+
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -11,70 +13,6 @@
 
 // REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
 #define MAP_SIZE 33
-
-const char *vertShaderSource = R"(
-#version 330 core
-
-layout(location = 0) in vec3 aPos;
-layout(location = 1) in vec3 aNormal;
-// layout(location = 2) in vec2 aUv;
-
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
-uniform mat3 normalMat;
-
-out float yPos;
-out vec3 normal;
-// out vec2 uv;
-
-void main() {
-    yPos = aPos.y;
-    normal = normalize(normalMat * aNormal);
-    // uv = aUv;
-    gl_Position = projection * view * model * vec4(aPos, 1.f);
-}
-)";
-
-const char *fragShaderSource = R"(
-#version 330 core
-
-struct Material {
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    vec3 emissive;
-    float shininess;
-};
-
-struct Light {
-    vec3 position;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-};
-
-in float yPos;
-in vec3 normal;
-// in vec2 uv;
-
-uniform vec3 globalAmbient;
-uniform Material material;
-uniform Light light;
-
-out vec4 colour;
-
-void main() {
-    vec3 lightDir = normalize(vec3(light.position));
-    vec3 diffuse = material.diffuse * light.diffuse;
-
-    if (yPos < -10.f) {
-        diffuse = vec3(0.93f, 0.788f, 0.686f);
-    }
-
-    colour = vec4(max(dot(normal, lightDir), 0.f) * diffuse, 1);
-}
-)";
 
 std::default_random_engine generator;
 glm::vec3 globalAmbient(.2f, .2f, .2f);
@@ -349,7 +287,7 @@ int main() {
     glfwSwapInterval(1);
 
     // Generate shaders
-    shader = new Shader(vertShaderSource, fragShaderSource);
+    shader = new Shader("assets/shaders/vert.glsl", "assets/shaders/terrain_frag.glsl");
     shader->use();
     shader->setGlobalAmbient(globalAmbient);
     shader->setLight(light);

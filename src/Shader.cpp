@@ -1,16 +1,43 @@
 
 #include <iostream>
+#include <fstream>
 #include <ext.hpp>
 #include "Shader.h"
 #include "Mesh.h"
 #include "Light.h"
 
-Shader::Shader(const char *vertexSrc, const char *fragSrc) {
-    GLuint vertexShader, fragmentShader;
+Shader::Shader(const char *vertexFile, const char *fragFile) {
+    // Load shaders from source
+    std::ifstream file;
+    std::string line;
+    std::string vertexSrc, fragmentSrc;
+
+    // Load vertex source
+    file.open(vertexFile, std::ios::in);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open vertex file" << std::endl;
+        return;
+    }
+    while (getline(file, line)) {
+        vertexSrc += line + "\n";
+    }
+    file.close();
+
+    // Load fragment source
+    file.open(fragFile, std::ios::in);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open fragment file" << std::endl;
+        return;
+    }
+    while (getline(file, line)) {
+        fragmentSrc += line + "\n";
+    }
+    file.close();
 
     // Compile shaders
-    vertexShader = createShader(GL_VERTEX_SHADER, vertexSrc);
-    fragmentShader = createShader(GL_FRAGMENT_SHADER, fragSrc);
+    GLuint vertexShader, fragmentShader;
+    vertexShader = createShader(GL_VERTEX_SHADER, vertexSrc.c_str());
+    fragmentShader = createShader(GL_FRAGMENT_SHADER, fragmentSrc.c_str());
 
     // Create program
     program = glCreateProgram();
