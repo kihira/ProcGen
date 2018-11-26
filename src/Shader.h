@@ -3,8 +3,8 @@
 #define PROCGEN_SHADER_H
 
 
-#include <glad/glad.h>
 #include <glm.hpp>
+#include <glad/glad.h>
 
 class Material; // Forward deceleration
 class Light;

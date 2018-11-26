@@ -10,6 +10,7 @@
 #include "Mesh.h"
 #include "Shader.h"
 #include "Light.h"
+#include "Camera.h"
 
 // REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
 #define MAP_SIZE 33
@@ -17,44 +18,7 @@
 std::default_random_engine generator;
 glm::vec3 globalAmbient(.2f, .2f, .2f);
 Shader *shader;
-
-struct Camera {
-    glm::vec3 position = glm::vec3(0.f, 0.f, 0.f);
-    glm::vec3 direction = glm::vec3(0.f, 0.f, -1.f);
-    glm::mat4 viewMatrix = glm::mat4(1.f);
-    glm::mat4 projMatrix = glm::mat4(1.f);
-    // Used for rotation delta
-    double cursorPosLastX = 0;
-    double cursorPosLastY = 0;
-    float yaw = 0.f;
-    float pitch = 0.f;
-    // Camera settings
-    float fov = 90.f;
-    float near_ = .1f;
-    float far_ = 1000.f;
-    float translateSpeed = .1f;
-    float rotationSpeed = .25f;
-
-    void updateProjectionMatrix(const int width, const int height) {
-        projMatrix = glm::perspective(glm::radians(fov), (float) width / (float) height, near_, far_);
-        shader->setUniform("projection", projMatrix);
-    }
-
-    void updateViewMatrix() {
-        // Prevent "flipping" the camera when looking up and down
-        pitch = glm::clamp(pitch, -89.9f, 89.9f);
-
-        // Calculate looking direction
-        direction.x = cosf(glm::radians(yaw)) * cosf(glm::radians(pitch));
-        direction.y = sinf(glm::radians(-pitch));
-        direction.z = sinf(glm::radians(yaw)) * cosf(glm::radians(pitch));
-        direction = glm::normalize(direction);
-
-        viewMatrix = glm::lookAt(position, position + direction, glm::vec3(0.f, 1.f, 0.f));
-        shader->setUniform("view", viewMatrix);
-    }
-
-} camera;
+Camera camera;
 
 const Light light {
     glm::vec3(2.5f, 10.f, 2.5f),
@@ -74,54 +38,10 @@ void glfwErrorCallback(int errCode, const char *description) {
     std::cerr << "GLFW Error " << errCode << ": " << description << std::endl;
 }
 
-void glfwCursorPosCallback(GLFWwindow *window, double xPos, double yPos) {
-    auto cursorDelta = glm::dvec2(xPos - camera.cursorPosLastX, yPos - camera.cursorPosLastY);
-
-    camera.yaw += cursorDelta.x * camera.rotationSpeed;
-    camera.pitch += cursorDelta.y * camera.rotationSpeed;
-    camera.updateViewMatrix();
-
-    camera.cursorPosLastX = xPos;
-    camera.cursorPosLastY = yPos;
-}
-
-void glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    // Repeating key used for camera controls
-    // todo translate based on facing position
-    if (action == GLFW_REPEAT) {
-        switch (key) {
-            case GLFW_KEY_W:
-                camera.position.z -= camera.translateSpeed;
-                break;
-            case GLFW_KEY_S:
-                camera.position.z += camera.translateSpeed;
-                break;
-            case GLFW_KEY_A:
-                camera.position.x -= camera.translateSpeed;
-                break;
-            case GLFW_KEY_D:
-                camera.position.x += camera.translateSpeed;
-                break;
-            case GLFW_KEY_R:
-                camera.position.y += camera.translateSpeed;
-                break;
-            case GLFW_KEY_F:
-                camera.position.t -= camera.translateSpeed;
-                break;
-            case GLFW_KEY_Q:
-                camera.direction.z -= camera.rotationSpeed;
-                break;
-            case GLFW_KEY_E:
-                camera.direction.z += camera.rotationSpeed;
-                break;
-        }
-        camera.updateViewMatrix();
-    }
-}
-
 void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     camera.updateProjectionMatrix(width, height);
+    shader->setUniform("projection", camera.getProjMatrix());
 }
 
 /**
@@ -292,9 +212,16 @@ int main() {
     shader->setGlobalAmbient(globalAmbient);
     shader->setLight(light);
 
+    // Setup callbacks
     glfwSetFramebufferSizeCallback(window, glfwFramebufferSizeCallback);
-    glfwSetKeyCallback(window, glfwKeyCallback);
-    glfwSetCursorPosCallback(window, glfwCursorPosCallback);
+    glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+        camera.handleKey(key, scancode, action, mods);
+        shader->setUniform("view", camera.getViewMatrix());
+    });
+    glfwSetCursorPosCallback(window, [](GLFWwindow* window, double xPos, double yPos) {
+        camera.handleCursorMove(xPos, yPos);
+        shader->setUniform("view", camera.getViewMatrix());
+    });
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Lock mouse to window and hide cursor
 
     // Set some default parameters
@@ -306,12 +233,15 @@ int main() {
     std::vector<Mesh *> terrain;
     generateTerrain(terrain);
 
+    // Initialise camera
     glViewport(0, 0, 1080, 720);
     camera.updateProjectionMatrix(1080, 720);
+    shader->setUniform("projection", camera.getProjMatrix());
     camera.updateViewMatrix();
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         for (auto mesh : terrain) {
             mesh->render(shader);
         }
