@@ -4,6 +4,7 @@
 #include "Mesh.h"
 
 #define TRIANGLE_STRIP
+#define TEX_SCALE .75f
 
 Mesh::Mesh(unsigned short width, unsigned short height, Material &material) : width(width), height(height), material(material) {
     data = new Vertex[width * height];
@@ -80,8 +81,8 @@ void Mesh::buildBuffers() {
 #endif
 
     // Generate UVs
-    float uScale = static_cast<float>(width) * .1f;
-    float vScale = static_cast<float>(height) * .1f;
+    float uScale = static_cast<float>(width) * TEX_SCALE;
+    float vScale = static_cast<float>(height) * TEX_SCALE;
     for (int x = 0; x < width; ++x) {
         for (int y = 0; y < height; ++y) {
             getValue(x, y).uv.x = uScale * (static_cast<float>(x) / static_cast<float>(width - 1));
