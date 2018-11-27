@@ -160,7 +160,7 @@ void generateTerrain(std::vector<Terrain *> &terrain) {
             0.f,
             {
                 loadTexture("assets/textures/sand.jpg"),
-                loadTexture("assets/textures/rock-grassy.jpg")
+                loadTexture("assets/textures/grass.jpg")
             }
     };
     auto mesh = new Terrain(MAP_SIZE, MAP_SIZE, material);
