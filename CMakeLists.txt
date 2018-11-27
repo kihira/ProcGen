@@ -3,7 +3,7 @@ project(ProcGen)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(ProcGen src/main.cpp src/Mesh.cpp src/Mesh.h src/Shader.cpp src/Shader.h src/Light.h src/Camera.cpp src/Camera.h)
+add_executable(ProcGen src/main.cpp src/Mesh.cpp src/Mesh.h src/Shader.cpp src/Shader.h src/Light.h src/Camera.cpp src/Camera.h src/Skybox.cpp src/Skybox.h)
 
 # GLFW
 # Disable GLFW docs, tests and examples

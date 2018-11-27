@@ -11,6 +11,7 @@
 #include "Shader.h"
 #include "Light.h"
 #include "Camera.h"
+#include "Skybox.h"
 
 // REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
 #define MAP_SIZE 33
@@ -229,11 +230,14 @@ int main() {
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
 
+    // Load skybox
+    auto skybox = new Skybox(new Shader("assets/shaders/skybox_vert.glsl", "assets/shaders/skybox_frag.glsl"), std::string("assets/textures/skybox_"));
+
     // Generate terrain
     std::vector<Mesh *> terrain;
     generateTerrain(terrain);
 
-    // Load and bind terrain texture TODO temp
+    // Load and bind terrain texture
     auto sandTexture = loadTexture("assets/textures/sand.jpg");
     auto grassyRockTexture = loadTexture("assets/textures/rock-grassy.jpg");
 
@@ -254,11 +258,21 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        for (auto mesh : terrain) {
-            mesh->render(shader);
-        }
-
+        skybox->render(camera);
         glErrorCheck();
+
+        for (auto mesh : terrain) {
+            shader->use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, sandTexture);
+            shader->setUniform("textures[0]", 0);
+
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, grassyRockTexture);
+            shader->setUniform("textures[1]", 1);
+            mesh->render(shader);
+            glErrorCheck();
+        }
 
         glfwPollEvents();
         glfwSwapBuffers(window);
