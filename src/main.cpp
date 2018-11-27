@@ -248,8 +248,8 @@ int main() {
     // Initialise camera
     glViewport(0, 0, 1080, 720);
     camera.updateProjectionMatrix(1080, 720);
-    shader->setUniform("projection", camera.getProjMatrix());
     camera.updateViewMatrix();
+    shader->setUniform("projection", camera.getProjMatrix());
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
