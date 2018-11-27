@@ -1,11 +1,11 @@
 
 #include <ext/matrix_transform.hpp>
 #include <iostream>
-#include "Mesh.h"
+#include "Terrain.h"
 
 #define TRIANGLE_STRIP
 
-Mesh::Mesh(unsigned short width, unsigned short height, Material &material) : width(width), height(height), material(material) {
+Terrain::Terrain(unsigned short width, unsigned short height, Material &material) : width(width), height(height), material(material) {
     data = new Vertex[width * height];
 
     // Generate initial data
@@ -26,27 +26,34 @@ Mesh::Mesh(unsigned short width, unsigned short height, Material &material) : wi
     updateModelMatrix();
 }
 
-Vertex &Mesh::getValue(int x, int y) {
+Vertex &Terrain::getValue(int x, int y) {
     assert(x < width);
     assert(y < height);
 
     return data[width * y + x];
 }
 
-Vertex *Mesh::getData() {
+Vertex *Terrain::getData() {
     return data;
 }
 
-void Mesh::render(Shader *shader) {
+void Terrain::render(Shader *shader) {
     shader->setUniform("model", modelMatrix);
     shader->setUniform("normalMat", glm::transpose(glm::inverse(glm::mat3(modelMatrix))));
     shader->setMaterial(material);
+
+    // Bind textures
+    for (int i = 0; i < material.textures.size(); ++i) {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, material.textures[i]);
+        shader->setUniform(("textures["+ std::to_string(i) + "]").c_str(), i);
+    }
 
     glBindVertexArray(vao);
     glDrawElements(mode, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_SHORT, nullptr);
 }
 
-void Mesh::buildBuffers() {
+void Terrain::buildBuffers() {
 #ifdef TRIANGLE_STRIP
     // Generate triangle strip indices
     mode = GL_TRIANGLE_STRIP;
@@ -190,11 +197,11 @@ void Mesh::buildBuffers() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned short), &indices[0], GL_STATIC_DRAW);
 }
 
-unsigned int Mesh::getSize() {
+unsigned int Terrain::getSize() {
     return width * height;
 }
 
-void Mesh::updateModelMatrix() {
+void Terrain::updateModelMatrix() {
     modelMatrix = glm::translate(glm::mat4(1.f), position);
     modelMatrix = glm::rotate(modelMatrix, rotation.x, glm::vec3(1.f, 0.f, 0.f));
     modelMatrix = glm::rotate(modelMatrix, rotation.y, glm::vec3(0.f, 1.f, 0.f));

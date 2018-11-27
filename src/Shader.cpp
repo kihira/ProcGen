@@ -3,7 +3,7 @@
 #include <fstream>
 #include <ext.hpp>
 #include "Shader.h"
-#include "Mesh.h"
+#include "Terrain.h"
 #include "Light.h"
 
 Shader::Shader(const char *vertexFile, const char *fragFile) {

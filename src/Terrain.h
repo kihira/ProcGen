@@ -14,6 +14,7 @@ struct Material {
     glm::vec3 specular;
     glm::vec3 emmisive;
     float shininess;
+    std::vector<GLuint> textures;
 };
 
 struct Vertex {
@@ -25,7 +26,7 @@ struct Vertex {
 /**
  * Effectively a 1D array that is accessible as a 2D one. Good for quickly uploaded data to OpenGL
  */
-class Mesh {
+class Terrain {
 private:
     GLuint vao; // Vertex array
     GLuint vbo; // Vertices data
@@ -44,7 +45,7 @@ private:
     unsigned short width, height;
     Vertex *data;
 public:
-    Mesh(unsigned short width, unsigned short height, Material &material);
+    Terrain(unsigned short width, unsigned short height, Material &material);
 
     Vertex &getValue(int x, int y);
 
