@@ -7,10 +7,11 @@
 #include <gtc/matrix_transform.hpp>
 #include <random>
 #include <stb_image.h>
-#include "Mesh.h"
+#include "Terrain.h"
 #include "Shader.h"
 #include "Light.h"
 #include "Camera.h"
+#include "Skybox.h"
 
 // REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
 #define MAP_SIZE 33
@@ -74,7 +75,7 @@ GLuint loadTexture(const char *filePath) {
     return textureId;
 }
 
-float diamondStep(Mesh *mesh, int x, int y, int stepSize) {
+float diamondStep(Terrain *mesh, int x, int y, int stepSize) {
     float averageHeight = 0.f;
     int xMin = x - stepSize;
     int xMax = x + stepSize;
@@ -94,7 +95,7 @@ float diamondStep(Mesh *mesh, int x, int y, int stepSize) {
  * @param y
  * @param stepSize
  */
-float squareStep(Mesh *vertices, int x, int y, int stepSize) {
+float squareStep(Terrain *vertices, int x, int y, int stepSize) {
     float averageHeight = 0.f;
     int xMin = x - stepSize;
     int xMax = x + stepSize;
@@ -126,7 +127,7 @@ float squareStep(Mesh *vertices, int x, int y, int stepSize) {
  * @param stepSize The step size
  * @param randMax Maximum random offset
  */
-void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
+void diamondSquare(Terrain *mesh, float h, int stepSize, float randMax) {
     if (stepSize <= 1) return;
     int halfStepSize = stepSize / 2;
     std::uniform_real_distribution<float> distribution(-randMax, randMax);
@@ -150,15 +151,19 @@ void diamondSquare(Mesh *mesh, float h, int stepSize, float randMax) {
     diamondSquare(mesh, h, stepSize, randMax);
 }
 
-void generateTerrain(std::vector<Mesh *> &terrain) {
+void generateTerrain(std::vector<Terrain *> &terrain) {
     Material material = {
             glm::vec3(1.f, 1.f, 1.f),
             glm::vec3(1.f, 1.f, 1.f),
             glm::vec3(1.f, 1.f, 1.f),
             glm::vec3(1.f, 1.f, 1.f),
-            0.f
+            0.f,
+            {
+                loadTexture("assets/textures/sand.jpg"),
+                loadTexture("assets/textures/rock-grassy.jpg")
+            }
     };
-    auto mesh = new Mesh(MAP_SIZE, MAP_SIZE, material);
+    auto mesh = new Terrain(MAP_SIZE, MAP_SIZE, material);
     float maxRand = 7.f;
     float h = 1.f;
     std::uniform_real_distribution<float> distribution(-maxRand, maxRand);
@@ -229,36 +234,30 @@ int main() {
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
 
+    // Load skybox
+    auto skybox = new Skybox(new Shader("assets/shaders/skybox_vert.glsl", "assets/shaders/skybox_frag.glsl"), std::string("assets/textures/skybox_"));
+
     // Generate terrain
-    std::vector<Mesh *> terrain;
+    std::vector<Terrain *> terrain;
     generateTerrain(terrain);
-
-    // Load and bind terrain texture TODO temp
-    auto sandTexture = loadTexture("assets/textures/sand.jpg");
-    auto grassyRockTexture = loadTexture("assets/textures/grass.jpg");
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, sandTexture);
-    shader->setUniform("textures[0]", 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, grassyRockTexture);
-    shader->setUniform("textures[1]", 1);
 
     // Initialise camera
     glViewport(0, 0, 1080, 720);
     camera.updateProjectionMatrix(1080, 720);
-    shader->setUniform("projection", camera.getProjMatrix());
     camera.updateViewMatrix();
+    shader->setUniform("projection", camera.getProjMatrix());
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        skybox->render(camera);
+        glErrorCheck();
+
+        shader->use();
         for (auto mesh : terrain) {
             mesh->render(shader);
+            glErrorCheck();
         }
-
-        glErrorCheck();
 
         glfwPollEvents();
         glfwSwapBuffers(window);

@@ -33,20 +33,19 @@ void Camera::handleCursorMove(double xPos, double yPos) {
 
 void Camera::handleKey(int key, int scancode, int action, int mods) {
     // Repeating key used for camera controls
-    // todo translate based on facing position
     if (action == GLFW_REPEAT || action == GLFW_KEY_DOWN) {
         switch (key) {
             case GLFW_KEY_W:
-                position.z -= translateSpeed;
+                position += direction * translateSpeed;
                 break;
             case GLFW_KEY_S:
-                position.z += translateSpeed;
+                position += -direction * translateSpeed;
                 break;
             case GLFW_KEY_A:
-                position.x -= translateSpeed;
+                position += glm::cross(glm::vec3(0.f, 1.f, 0.f), direction) * translateSpeed;
                 break;
             case GLFW_KEY_D:
-                position.x += translateSpeed;
+                position += -glm::cross(glm::vec3(0.f, 1.f, 0.f), direction) * translateSpeed;
                 break;
             case GLFW_KEY_R:
                 position.y += translateSpeed;
@@ -54,12 +53,12 @@ void Camera::handleKey(int key, int scancode, int action, int mods) {
             case GLFW_KEY_F:
                 position.t -= translateSpeed;
                 break;
-            case GLFW_KEY_Q:
-                direction.z -= rotationSpeed;
-                break;
-            case GLFW_KEY_E:
-                direction.z += rotationSpeed;
-                break;
+//            case GLFW_KEY_Q:
+//                direction.z -= rotationSpeed;
+//                break;
+//            case GLFW_KEY_E:
+//                direction.z += rotationSpeed;
+//                break;
         }
         updateViewMatrix();
     }
