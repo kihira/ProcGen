@@ -41,6 +41,8 @@ void Terrain::render(Shader *shader) {
     shader->setUniform("model", modelMatrix);
     shader->setUniform("normalMat", glm::transpose(glm::inverse(glm::mat3(modelMatrix))));
     shader->setMaterial(material);
+    shader->setUniform("minY", minY);
+    shader->setUniform("maxY", maxY);
 
     // Bind textures
     for (int i = 0; i < material.textures.size(); ++i) {
@@ -75,6 +77,13 @@ void Terrain::buildBuffers() {
     float vScale = static_cast<float>(height) * TEX_SCALE;
     for (int x = 0; x < width; ++x) {
         for (int y = 0; y < height; ++y) {
+            // Calculate min and max y
+            if (getValue(x, y).position.y > maxY) {
+                maxY = getValue(x, y).position.y;
+            } else if (getValue(x, y).position.y < minY) {
+                minY = getValue(x, y).position.y;
+            }
+
             getValue(x, y).uv.x = uScale * (static_cast<float>(x) / static_cast<float>(width - 1));
             getValue(x, y).uv.y = vScale * (static_cast<float>(y) / static_cast<float>(height - 1));
         }

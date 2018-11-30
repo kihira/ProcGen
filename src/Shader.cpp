@@ -79,14 +79,6 @@ void Shader::use() {
     glUseProgram(program);
 }
 
-void Shader::setUniform(const char *name, glm::mat4 value) {
-    glUniformMatrix4fv(glGetUniformLocation(program, name), 1, GL_FALSE, glm::value_ptr(value));
-}
-
-void Shader::setUniform(const char *name, glm::mat3 value) {
-    glUniformMatrix3fv(glGetUniformLocation(program, name), 1, GL_FALSE, glm::value_ptr(value));
-}
-
 void Shader::setMaterial(Material &material) {
     glUniform3fv(glGetUniformLocation(program, "material.ambient"), 1, glm::value_ptr(material.ambient));
     glUniform3fv(glGetUniformLocation(program, "material.diffuse"), 1, glm::value_ptr(material.diffuse));
@@ -106,6 +98,27 @@ void Shader::setLight(const Light &light) {
     glUniform3fv(glGetUniformLocation(program, "light.specular"), 1, glm::value_ptr(light.specular));
 }
 
-void Shader::setUniform(const char *name, int value) {
+template<typename T>
+void Shader::setUniform(const char *name, T value) {
+    std::cerr << "Unimplemented shader uniform type" << std::endl;
+}
+
+template <>
+void Shader::setUniform<glm::mat4>(const char *name, glm::mat4 value) {
+    glUniformMatrix4fv(glGetUniformLocation(program, name), 1, GL_FALSE, glm::value_ptr(value));
+}
+
+template <>
+void Shader::setUniform<glm::mat3>(const char *name, glm::mat3 value) {
+    glUniformMatrix3fv(glGetUniformLocation(program, name), 1, GL_FALSE, glm::value_ptr(value));
+}
+
+template <>
+void Shader::setUniform<int>(const char *name, int value) {
     glUniform1i(glGetUniformLocation(program, name), value);
+}
+
+template <>
+void Shader::setUniform<float>(const char *name, float value) {
+    glUniform1f(glGetUniformLocation(program, name), value);
 }

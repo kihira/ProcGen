@@ -23,6 +23,8 @@ uniform vec3 globalAmbient;
 uniform Material material;
 uniform Light light;
 uniform sampler2D textures[2];
+uniform float minY;
+uniform float maxY;
 
 out vec4 colour;
 
@@ -30,11 +32,11 @@ void main() {
     vec3 lightDir = normalize(light.position);
     vec4 diffuse = vec4(material.diffuse * light.diffuse, 1.f);
 
-    const float endSand = -11.f;
-    const float startGrassRocks = -10.f;
+    const float endSand = 0.1f;
+    const float startGrassRocks = 0.2f;
 
-    // todo need to map this to between 0 - 1
-    float yScale = yPos;
+    float yScale = yPos - minY;
+    yScale /= maxY - minY;
 
     // Sand only
     if (yScale < endSand) {

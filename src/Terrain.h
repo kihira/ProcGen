@@ -43,6 +43,7 @@ private:
 
     // Data for generating terrain
     unsigned short width, height;
+    float minY, maxY;
     Vertex *data;
 public:
     Terrain(unsigned short width, unsigned short height, Material &material);

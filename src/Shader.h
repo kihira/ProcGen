@@ -21,11 +21,8 @@ public:
 
     void use();
 
-    void setUniform(const char *name, glm::mat4 value);
-
-    void setUniform(const char *name, glm::mat3 value);
-
-    void setUniform(const char *name, int value);
+    template <typename T>
+    void setUniform(const char *name, T value);
 
     void setMaterial(Material &material);
 
