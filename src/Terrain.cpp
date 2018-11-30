@@ -32,6 +32,8 @@ Terrain::Terrain(unsigned short size, float maxRand, float h, Shader *shader, Ma
 
     diamondSquare(size - 1, maxRand);
 
+    buildBuffers();
+
     // Set world transform
     position = glm::vec3(0.f);
     rotation = glm::vec3(0.f);
@@ -278,4 +280,9 @@ void Terrain::diamondSquare(int stepSize, float randMax) {
     randMax = randMax * powf(2, -h);
     stepSize = halfStepSize;
     diamondSquare(stepSize, randMax);
+}
+
+void Terrain::setPosition(const glm::vec3 &position) {
+    Terrain::position = position;
+    updateModelMatrix();
 }

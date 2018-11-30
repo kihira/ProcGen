@@ -36,6 +36,7 @@ void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     camera.updateProjectionMatrix(width, height);
     for (auto shader : shaders) {
+        shader->use();
         shader->setUniform("projection", camera.getProjMatrix());
     }
 }
@@ -70,7 +71,7 @@ GLuint loadTexture(const char *filePath) {
     return textureId;
 }
 
-void generateTerrain(std::vector<Terrain *> &terrain) {
+void generateTerrain(std::vector<Terrain *> &terrains) {
     // Main terrain
     auto shader = new Shader("assets/shaders/vert.glsl", "assets/shaders/terrain_frag.glsl");
     shader->setGlobalAmbient(globalAmbient);
@@ -89,9 +90,30 @@ void generateTerrain(std::vector<Terrain *> &terrain) {
                 loadTexture("assets/textures/grass.jpg")
             }
     };
-    auto mesh = new Terrain(MAP_SIZE, 7.f, 1.f, shader, material);
-    mesh->buildBuffers();
-    terrain.push_back(mesh);
+    terrains.push_back(new Terrain(MAP_SIZE, 7.f, 1.f, shader, material));
+    GLERRCHECK();
+
+    // Water
+    // Main terrain
+    auto waterShader = new Shader("assets/shaders/water_vert.glsl", "assets/shaders/water_frag.glsl");
+    waterShader->setGlobalAmbient(globalAmbient);
+    waterShader->setLight(light);
+    shaders.push_back(waterShader);
+    GLERRCHECK();
+
+    Material waterMaterial = {
+            glm::vec3(1.f, 1.f, 1.f),
+            glm::vec3(1.f, 1.f, 1.f),
+            glm::vec3(1.f, 1.f, 1.f),
+            glm::vec3(1.f, 1.f, 1.f),
+            0.f,
+            {
+                    loadTexture("assets/textures/water.jpg")
+            }
+    };
+    auto water = new Terrain(MAP_SIZE, 1.f, .8f, waterShader, waterMaterial);
+    water->setPosition(glm::vec3(0.f, -2.f, 0.f));
+    terrains.push_back(water);
     GLERRCHECK();
 }
 
@@ -132,12 +154,14 @@ int main() {
     glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
         camera.handleKey(key, scancode, action, mods);
         for (auto shader : shaders) {
+            shader->use();
             shader->setUniform("view", camera.getViewMatrix());
         }
     });
     glfwSetCursorPosCallback(window, [](GLFWwindow* window, double xPos, double yPos) {
         camera.handleCursorMove(xPos, yPos);
         for (auto shader : shaders) {
+            shader->use();
             shader->setUniform("view", camera.getViewMatrix());
         }
     });
@@ -162,6 +186,7 @@ int main() {
     camera.updateProjectionMatrix(1080, 720);
     camera.updateViewMatrix();
     for (auto shader : shaders) {
+        shader->use();
         shader->setUniform("projection", camera.getProjMatrix());
         GLERRCHECK();
     }

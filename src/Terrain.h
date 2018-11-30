@@ -80,6 +80,8 @@ public:
      * This should ALWAYS be called after updating position/rotation/scale
      */
     void updateModelMatrix();
+
+    void setPosition(const glm::vec3 &position);
 };
 
 

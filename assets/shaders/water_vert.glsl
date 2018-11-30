@@ -15,7 +15,7 @@ out vec2 uv;
 void main() {
     normal = normalize(normalMat * aNormal);
     uv = aUv;
-    vec4 position = projection * view * model * vec4(aPos, 1.f);
-    position.y += sin(position.x);
-    gl_Position = position;
+    vec3 position = aPos;
+    position.y += sin(aPos.x) * .15f;
+    gl_Position = projection * view * model * vec4(position, 1.f);
 }
