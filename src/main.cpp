@@ -13,6 +13,7 @@
 #include "Camera.h"
 #include "Skybox.h"
 #include "glHelper.h"
+#include "Water.h"
 
 // REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
 #define MAP_SIZE 33
@@ -111,8 +112,8 @@ void generateTerrain(std::vector<Terrain *> &terrains) {
                     loadTexture("assets/textures/water.jpg")
             }
     };
-    auto water = new Terrain(MAP_SIZE, 1.f, .8f, waterShader, waterMaterial);
-    water->setPosition(glm::vec3(0.f, -2.f, 0.f));
+    auto water = new Water(MAP_SIZE, 1.f, .8f, waterShader, waterMaterial);
+    water->setPosition(glm::vec3(0.f, -3.25f, 0.f));
     terrains.push_back(water);
     GLERRCHECK();
 }

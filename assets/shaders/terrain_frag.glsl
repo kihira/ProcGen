@@ -32,8 +32,8 @@ void main() {
     vec3 lightDir = normalize(light.position);
     vec4 diffuse = vec4(material.diffuse * light.diffuse, 1.f);
 
-    const float endSand = 0.1f;
-    const float startGrassRocks = 0.2f;
+    const float endSand = 0.35f;
+    const float startGrassRocks = 0.4f;
 
     float yScale = yPos - minY;
     yScale /= maxY - minY;

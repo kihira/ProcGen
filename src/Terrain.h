@@ -4,7 +4,6 @@
 
 
 #include <vec3.hpp>
-#include <glad/glad.h>
 #include <vector>
 #include <random>
 #include "Shader.h"
@@ -36,7 +35,6 @@ private:
     GLuint ibo; // Indices data
     GLenum mode;
     Material material;
-    Shader *shader;
     std::vector<unsigned short> indices;
 
     // World space data
@@ -56,6 +54,9 @@ private:
     float squareStep(int x, int y, int stepSize);
 
     void diamondSquare(int stepSize, float randMax);
+
+protected:
+    Shader *shader;
 public:
     Terrain(unsigned short size, float maxRand, float h, Shader *shader, Material &material);
 
@@ -68,7 +69,7 @@ public:
     /**
      * Renders the current mesh
      */
-    void render();
+    virtual void render();
 
     /**
      * Generates the buffers and fills them with the mesh data

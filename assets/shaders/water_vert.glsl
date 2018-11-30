@@ -8,6 +8,7 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat3 normalMat;
+uniform float time;
 
 out vec3 normal;
 out vec2 uv;
@@ -16,6 +17,6 @@ void main() {
     normal = normalize(normalMat * aNormal);
     uv = aUv;
     vec3 position = aPos;
-    position.y += sin(aPos.x) * .15f;
+    position.y += sin(aPos.x + time + sin(aPos.z)) * .05f;
     gl_Position = projection * view * model * vec4(position, 1.f);
 }
