@@ -5,6 +5,7 @@
 #include "Shader.h"
 #include "Terrain.h"
 #include "Light.h"
+#include "glHelper.h"
 
 Shader::Shader(const char *vertexFile, const char *fragFile) {
     // Load shaders from source
@@ -44,6 +45,7 @@ Shader::Shader(const char *vertexFile, const char *fragFile) {
     glAttachShader(program, vertexShader);
     glAttachShader(program, fragmentShader);
     glLinkProgram(program);
+    GLERRCHECK();
 
     // Check program link
     GLint err;
@@ -53,6 +55,8 @@ Shader::Shader(const char *vertexFile, const char *fragFile) {
         glGetProgramInfoLog(program, 1024, nullptr, errData);
         std::cerr << errData << std::endl;
     }
+
+    use();
 }
 
 bool Shader::checkShaderCompile(GLuint shader) {
@@ -77,6 +81,7 @@ GLuint Shader::createShader(GLenum type, const char *src) {
 
 void Shader::use() {
     glUseProgram(program);
+    GLERRCHECK();
 }
 
 void Shader::setMaterial(Material &material) {
@@ -85,10 +90,12 @@ void Shader::setMaterial(Material &material) {
     glUniform3fv(glGetUniformLocation(program, "material.specular"), 1, glm::value_ptr(material.specular));
     glUniform3fv(glGetUniformLocation(program, "material.emmisive"), 1, glm::value_ptr(material.emmisive));
     glUniform1f(glGetUniformLocation(program, "material.shininess"), material.shininess);
+    GLERRCHECK();
 }
 
 void Shader::setGlobalAmbient(glm::vec3 &colour) {
     glUniform3fv(glGetUniformLocation(program, "globalAmbient"), 1, glm::value_ptr(colour));
+    GLERRCHECK();
 }
 
 void Shader::setLight(const Light &light) {
@@ -96,6 +103,7 @@ void Shader::setLight(const Light &light) {
     glUniform3fv(glGetUniformLocation(program, "light.ambient"), 1, glm::value_ptr(light.ambient));
     glUniform3fv(glGetUniformLocation(program, "light.diffuse"), 1, glm::value_ptr(light.diffuse));
     glUniform3fv(glGetUniformLocation(program, "light.specular"), 1, glm::value_ptr(light.specular));
+    GLERRCHECK();
 }
 
 template<typename T>
@@ -106,19 +114,23 @@ void Shader::setUniform(const char *name, T value) {
 template <>
 void Shader::setUniform<glm::mat4>(const char *name, glm::mat4 value) {
     glUniformMatrix4fv(glGetUniformLocation(program, name), 1, GL_FALSE, glm::value_ptr(value));
+    GLERRCHECK();
 }
 
 template <>
 void Shader::setUniform<glm::mat3>(const char *name, glm::mat3 value) {
     glUniformMatrix3fv(glGetUniformLocation(program, name), 1, GL_FALSE, glm::value_ptr(value));
+    GLERRCHECK();
 }
 
 template <>
 void Shader::setUniform<int>(const char *name, int value) {
     glUniform1i(glGetUniformLocation(program, name), value);
+    GLERRCHECK();
 }
 
 template <>
 void Shader::setUniform<float>(const char *name, float value) {
     glUniform1f(glGetUniformLocation(program, name), value);
+    GLERRCHECK();
 }

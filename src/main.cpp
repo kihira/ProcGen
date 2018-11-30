@@ -12,6 +12,7 @@
 #include "Light.h"
 #include "Camera.h"
 #include "Skybox.h"
+#include "glHelper.h"
 
 // REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
 #define MAP_SIZE 33
@@ -26,13 +27,6 @@ const Light light {
     glm::vec3(1.f),
     glm::vec3(1.f),
 };
-
-void glErrorCheck() {
-    GLenum err = glGetError();
-    if (err != GL_NO_ERROR) {
-        std::cerr << "(" << __FILE__ << ":" << __LINE__ << ") OpenGL error 0x" << std::hex << err << std::endl;
-    }
-}
 
 void glfwErrorCallback(int errCode, const char *description) {
     std::cerr << "GLFW Error " << errCode << ": " << description << std::endl;
@@ -82,7 +76,7 @@ void generateTerrain(std::vector<Terrain *> &terrain) {
     shader->setGlobalAmbient(globalAmbient);
     shader->setLight(light);
     shaders.push_back(shader);
-    glErrorCheck();
+    GLERRCHECK();
 
     Material material = {
             glm::vec3(1.f, 1.f, 1.f),
@@ -98,7 +92,7 @@ void generateTerrain(std::vector<Terrain *> &terrain) {
     auto mesh = new Terrain(MAP_SIZE, 7.f, 1.f, shader, material);
     mesh->buildBuffers();
     terrain.push_back(mesh);
-    glErrorCheck();
+    GLERRCHECK();
 }
 
 int main() {
@@ -153,11 +147,11 @@ int main() {
     glClearColor(.7f, .7f, .7f, 1.f);
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
-    glErrorCheck();
+    GLERRCHECK();
 
     // Load skybox
     auto skybox = new Skybox(new Shader("assets/shaders/skybox_vert.glsl", "assets/shaders/skybox_frag.glsl"), std::string("assets/textures/skybox_"));
-    glErrorCheck();
+    GLERRCHECK();
 
     // Generate terrain
     std::vector<Terrain *> terrain;
@@ -169,18 +163,18 @@ int main() {
     camera.updateViewMatrix();
     for (auto shader : shaders) {
         shader->setUniform("projection", camera.getProjMatrix());
-        glErrorCheck();
+        GLERRCHECK();
     }
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         skybox->render(camera);
-        glErrorCheck();
+        GLERRCHECK();
 
         for (auto mesh : terrain) {
             mesh->render();
-            glErrorCheck();
+            GLERRCHECK();
         }
 
         glfwPollEvents();
