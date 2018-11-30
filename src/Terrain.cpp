@@ -5,12 +5,15 @@
 
 #define TEX_SCALE .75f
 
-Terrain::Terrain(unsigned short width, unsigned short height, Material &material) : width(width), height(height), material(material) {
-    data = new Vertex[width * height];
+std::default_random_engine Terrain::generator;
+
+Terrain::Terrain(unsigned short size, float maxRand, float h, Shader *shader, Material &material)
+        : size(size), maxRand(maxRand), h(h), shader(shader), material(material) {
+    data = new Vertex[size * size];
 
     // Generate initial data
-    for (int x = 0; x < width; ++x) {
-        for (int z = 0; z < height; ++z) {
+    for (int x = 0; x < size; ++x) {
+        for (int z = 0; z < size; ++z) {
             getValue(x, z).position.x = x;
             getValue(x, z).position.y = 0.f;
             getValue(x, z).position.z = z;
@@ -20,6 +23,16 @@ Terrain::Terrain(unsigned short width, unsigned short height, Material &material
         }
     }
 
+    // Generate terrain
+    std::uniform_real_distribution<float> distribution(-maxRand, maxRand);
+    getValue(0, 0).position.y = distribution(generator);
+    getValue(0, size - 1).position.y = distribution(generator);
+    getValue(size - 1, size - 1).position.y = distribution(generator);
+    getValue(size - 1, 0).position.y = distribution(generator);
+
+    diamondSquare(size - 1, maxRand);
+
+    // Set world transform
     position = glm::vec3(0.f);
     rotation = glm::vec3(0.f);
     scale = glm::vec3(1.f);
@@ -27,17 +40,18 @@ Terrain::Terrain(unsigned short width, unsigned short height, Material &material
 }
 
 Vertex &Terrain::getValue(int x, int y) {
-    assert(x < width);
-    assert(y < height);
+    assert(x < size);
+    assert(y < size);
 
-    return data[width * y + x];
+    return data[size * y + x];
 }
 
 Vertex *Terrain::getData() {
     return data;
 }
 
-void Terrain::render(Shader *shader) {
+void Terrain::render() {
+    shader->use();
     shader->setUniform("model", modelMatrix);
     shader->setUniform("normalMat", glm::transpose(glm::inverse(glm::mat3(modelMatrix))));
     shader->setMaterial(material);
@@ -58,14 +72,14 @@ void Terrain::render(Shader *shader) {
 void Terrain::buildBuffers() {
     // Generate triangle strip indices
     mode = GL_TRIANGLE_STRIP;
-    for (unsigned short y = 0; y < height - 1; ++y) {
-        for (unsigned short x = 0; x < width; ++x) {
-            indices.push_back((y * height) + x);
-            indices.push_back((y * height) + x + height);
+    for (unsigned short y = 0; y < size - 1; ++y) {
+        for (unsigned short x = 0; x < size; ++x) {
+            indices.push_back((y * size) + x);
+            indices.push_back((y * size) + x + size);
         }
         // Degenerate triangles
-        indices.push_back((y * height) + width + height - (unsigned short) 1);
-        indices.push_back((y * height) + width);
+        indices.push_back((y * size) + size + size - (unsigned short) 1);
+        indices.push_back((y * size) + size);
     }
 
     // Remove last two which are degenerates
@@ -73,10 +87,10 @@ void Terrain::buildBuffers() {
     indices.pop_back();
 
     // Generate UVs
-    float uScale = static_cast<float>(width) * TEX_SCALE;
-    float vScale = static_cast<float>(height) * TEX_SCALE;
-    for (int x = 0; x < width; ++x) {
-        for (int y = 0; y < height; ++y) {
+    float uScale = static_cast<float>(size) * TEX_SCALE;
+    float vScale = static_cast<float>(size) * TEX_SCALE;
+    for (int x = 0; x < size; ++x) {
+        for (int y = 0; y < size; ++y) {
             // Calculate min and max y
             if (getValue(x, y).position.y > maxY) {
                 maxY = getValue(x, y).position.y;
@@ -84,19 +98,19 @@ void Terrain::buildBuffers() {
                 minY = getValue(x, y).position.y;
             }
 
-            getValue(x, y).uv.x = uScale * (static_cast<float>(x) / static_cast<float>(width - 1));
-            getValue(x, y).uv.y = vScale * (static_cast<float>(y) / static_cast<float>(height - 1));
+            getValue(x, y).uv.x = uScale * (static_cast<float>(x) / static_cast<float>(size - 1));
+            getValue(x, y).uv.y = vScale * (static_cast<float>(y) / static_cast<float>(size - 1));
         }
     }
 
     // Generate normals
 
     // Normals per quad (which is made of two triangles)
-    glm::vec3 quadNormals[width - 1][height - 1][2];
+    glm::vec3 quadNormals[size - 1][size - 1][2];
 
     // Calculate the normals per quad (and their two triangles)
-    for (int x = 0; x < width - 1; ++x) {
-        for (int y = 0; y < height - 1; ++y) {
+    for (int x = 0; x < size - 1; ++x) {
+        for (int y = 0; y < size - 1; ++y) {
             // First triangle
             auto vert1 = getValue(x, y).position;
             auto vert2 = getValue(x, y+1).position;
@@ -122,8 +136,8 @@ void Terrain::buildBuffers() {
     }
 
     // Calculate normal per vertex based upon previous calculation
-    for (int x = 0; x < width; ++x) {
-        for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < size; ++x) {
+        for (int y = 0; y < size; ++y) {
             glm::vec3 normal(0.f);
             if (y > 0) {
                 // Get top left quad, second triangle
@@ -131,19 +145,19 @@ void Terrain::buildBuffers() {
                     normal += quadNormals[x-1][y-1][1];
                 }
                 // Top right quad, both triangles
-                if (x < width - 1) {
+                if (x < size - 1) {
                     normal += quadNormals[x][y-1][0];
                     normal += quadNormals[x][y-1][1];
                 }
             }
-            if (y < height - 1) {
+            if (y < size - 1) {
                 // Bottom left quad, both triangles
                 if (x > 0) {
                     normal += quadNormals[x-1][y][0];
                     normal += quadNormals[x-1][y][1];
                 }
                 // Bottom right quad, first triangle
-                if (x < width - 1) {
+                if (x < size - 1) {
                     normal += quadNormals[x][y][0];
                 }
             }
@@ -179,7 +193,7 @@ void Terrain::buildBuffers() {
 }
 
 unsigned int Terrain::getSize() {
-    return width * height;
+    return size * size;
 }
 
 void Terrain::updateModelMatrix() {
@@ -188,4 +202,80 @@ void Terrain::updateModelMatrix() {
     modelMatrix = glm::rotate(modelMatrix, rotation.y, glm::vec3(0.f, 1.f, 0.f));
     modelMatrix = glm::rotate(modelMatrix, rotation.z, glm::vec3(0.f, 0.f, 1.f));
     // modelMatrix = glm::scale(modelMatrix, scale);
+}
+
+float Terrain::diamondStep(int x, int y, int stepSize) {
+    float averagesize = 0.f;
+    int xMin = x - stepSize;
+    int xMax = x + stepSize;
+    int yMin = y - stepSize;
+    int yMax = y + stepSize;
+    averagesize += getValue(xMin, yMin).position.y; // Top left
+    averagesize += getValue(xMin, yMax).position.y; // Bottom left
+    averagesize += getValue(xMax, yMin).position.y; // Top right
+    averagesize += getValue(xMax, yMax).position.y; // Bottom right
+    return averagesize / 4.f;
+}
+
+/**
+ * Calculates the average size for the provided vertex based on a diamond pattern around it
+ * @param vertices
+ * @param x
+ * @param y
+ * @param stepSize
+ */
+float Terrain::squareStep(int x, int y, int stepSize) {
+    float averagesize = 0.f;
+    int xMin = x - stepSize;
+    int xMax = x + stepSize;
+    int yMin = y - stepSize;
+    int yMax = y + stepSize;
+    if (xMin < 0) {
+        xMin = size - abs(xMin);
+    }
+    averagesize += getValue(xMin, y).position.y; // Left
+    if (xMax >= size) {
+        xMax = xMax - size;
+    }
+    averagesize += getValue(xMax, y).position.y; // Right
+    if (yMin < 0) {
+        yMin = size - abs(yMin);
+    }
+    averagesize += getValue(x, yMin).position.y; // Top
+    if (yMax >= size) {
+        yMax = yMax - size;
+    }
+    averagesize += getValue(x, yMax).position.y; // Bottom
+    return averagesize / 4.f;
+}
+
+/**
+ * Applies the Diamond-Square algorithm to the provided set of vertices in a recursive way
+ * @param mesh The mesh data
+ * @param h The smoothness
+ * @param stepSize The step size
+ * @param randMax Maximum random offset
+ */
+void Terrain::diamondSquare(int stepSize, float randMax) {
+    if (stepSize <= 1) return;
+    int halfStepSize = stepSize / 2;
+    std::uniform_real_distribution<float> distribution(-randMax, randMax);
+
+    for (int x = halfStepSize; x < size - 1; x += stepSize) {
+        for (int y = halfStepSize; y < size - 1; y += stepSize) {
+            getValue(x, y).position.y = diamondStep(x, y, halfStepSize) + distribution(generator);
+        }
+    }
+
+    bool offset = false;
+    for (int x = 0; x <= size - 1; x += halfStepSize) {
+        offset = !offset;
+        for (int y = offset ? halfStepSize : 0; y <= size - 1; y += stepSize) {
+            getValue(x, y).position.y = squareStep(x, y, halfStepSize) + distribution(generator);
+        }
+    }
+
+    randMax = randMax * powf(2, -h);
+    stepSize = halfStepSize;
+    diamondSquare(stepSize, randMax);
 }

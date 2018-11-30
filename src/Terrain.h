@@ -6,6 +6,7 @@
 #include <vec3.hpp>
 #include <glad/glad.h>
 #include <vector>
+#include <random>
 #include "Shader.h"
 
 struct Material {
@@ -28,11 +29,14 @@ struct Vertex {
  */
 class Terrain {
 private:
+    static std::default_random_engine generator;
+
     GLuint vao; // Vertex array
     GLuint vbo; // Vertices data
     GLuint ibo; // Indices data
     GLenum mode;
     Material material;
+    Shader *shader;
     std::vector<unsigned short> indices;
 
     // World space data
@@ -42,11 +46,18 @@ private:
     glm::mat4 modelMatrix;
 
     // Data for generating terrain
-    unsigned short width, height;
+    unsigned short size;
     float minY, maxY;
+    float maxRand, h;
     Vertex *data;
+
+    float diamondStep(int x, int y, int stepSize);
+
+    float squareStep(int x, int y, int stepSize);
+
+    void diamondSquare(int stepSize, float randMax);
 public:
-    Terrain(unsigned short width, unsigned short height, Material &material);
+    Terrain(unsigned short size, float maxRand, float h, Shader *shader, Material &material);
 
     Vertex &getValue(int x, int y);
 
@@ -57,7 +68,7 @@ public:
     /**
      * Renders the current mesh
      */
-    void render(Shader *shader);
+    void render();
 
     /**
      * Generates the buffers and fills them with the mesh data

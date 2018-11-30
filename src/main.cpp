@@ -16,10 +16,9 @@
 // REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
 #define MAP_SIZE 33
 
-std::default_random_engine generator;
 glm::vec3 globalAmbient(.2f, .2f, .2f);
-Shader *shader;
 Camera camera;
+std::vector<Shader *> shaders;
 
 const Light light {
     glm::vec3(2.5f, 10.f, 2.5f),
@@ -42,7 +41,9 @@ void glfwErrorCallback(int errCode, const char *description) {
 void glfwFramebufferSizeCallback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
     camera.updateProjectionMatrix(width, height);
-    shader->setUniform("projection", camera.getProjMatrix());
+    for (auto shader : shaders) {
+        shader->setUniform("projection", camera.getProjMatrix());
+    }
 }
 
 /**
@@ -75,83 +76,14 @@ GLuint loadTexture(const char *filePath) {
     return textureId;
 }
 
-float diamondStep(Terrain *mesh, int x, int y, int stepSize) {
-    float averageHeight = 0.f;
-    int xMin = x - stepSize;
-    int xMax = x + stepSize;
-    int yMin = y - stepSize;
-    int yMax = y + stepSize;
-    averageHeight += mesh->getValue(xMin, yMin).position.y; // Top left
-    averageHeight += mesh->getValue(xMin, yMax).position.y; // Bottom left
-    averageHeight += mesh->getValue(xMax, yMin).position.y; // Top right
-    averageHeight += mesh->getValue(xMax, yMax).position.y; // Bottom right
-    return averageHeight / 4.f;
-}
-
-/**
- * Calculates the average height for the provided vertex based on a diamond pattern around it
- * @param vertices
- * @param x
- * @param y
- * @param stepSize
- */
-float squareStep(Terrain *vertices, int x, int y, int stepSize) {
-    float averageHeight = 0.f;
-    int xMin = x - stepSize;
-    int xMax = x + stepSize;
-    int yMin = y - stepSize;
-    int yMax = y + stepSize;
-    if (xMin < 0) {
-        xMin = MAP_SIZE - abs(xMin);
-    }
-    averageHeight += vertices->getValue(xMin, y).position.y; // Left
-    if (xMax >= MAP_SIZE) {
-        xMax = xMax - MAP_SIZE;
-    }
-    averageHeight += vertices->getValue(xMax, y).position.y; // Right
-    if (yMin < 0) {
-        yMin = MAP_SIZE - abs(yMin);
-    }
-    averageHeight += vertices->getValue(x, yMin).position.y; // Top
-    if (yMax >= MAP_SIZE) {
-        yMax = yMax - MAP_SIZE;
-    }
-    averageHeight += vertices->getValue(x, yMax).position.y; // Bottom
-    return averageHeight / 4.f;
-}
-
-/**
- * Applies the Diamond-Square algorithm to the provided set of vertices in a recursive way
- * @param mesh The mesh data
- * @param h The smoothness
- * @param stepSize The step size
- * @param randMax Maximum random offset
- */
-void diamondSquare(Terrain *mesh, float h, int stepSize, float randMax) {
-    if (stepSize <= 1) return;
-    int halfStepSize = stepSize / 2;
-    std::uniform_real_distribution<float> distribution(-randMax, randMax);
-
-    for (int x = halfStepSize; x < MAP_SIZE - 1; x += stepSize) {
-        for (int y = halfStepSize; y < MAP_SIZE - 1; y += stepSize) {
-            mesh->getValue(x, y).position.y = diamondStep(mesh, x, y, halfStepSize) + distribution(generator);
-        }
-    }
-
-    bool offset = false;
-    for (int x = 0; x <= MAP_SIZE - 1; x += halfStepSize) {
-        offset = !offset;
-        for (int y = offset ? halfStepSize : 0; y <= MAP_SIZE - 1; y += stepSize) {
-            mesh->getValue(x, y).position.y = squareStep(mesh, x, y, halfStepSize) + distribution(generator);
-        }
-    }
-
-    randMax = randMax * powf(2, -h);
-    stepSize = halfStepSize;
-    diamondSquare(mesh, h, stepSize, randMax);
-}
-
 void generateTerrain(std::vector<Terrain *> &terrain) {
+    // Main terrain
+    auto shader = new Shader("assets/shaders/vert.glsl", "assets/shaders/terrain_frag.glsl");
+    shader->setGlobalAmbient(globalAmbient);
+    shader->setLight(light);
+    shaders.push_back(shader);
+    glErrorCheck();
+
     Material material = {
             glm::vec3(1.f, 1.f, 1.f),
             glm::vec3(1.f, 1.f, 1.f),
@@ -163,20 +95,10 @@ void generateTerrain(std::vector<Terrain *> &terrain) {
                 loadTexture("assets/textures/grass.jpg")
             }
     };
-    auto mesh = new Terrain(MAP_SIZE, MAP_SIZE, material);
-    float maxRand = 7.f;
-    float h = 1.f;
-    std::uniform_real_distribution<float> distribution(-maxRand, maxRand);
-    // float cornerStart = distribution(generator);
-
-    mesh->getValue(0, 0).position.y = distribution(generator);
-    mesh->getValue(0, MAP_SIZE - 1).position.y = distribution(generator);
-    mesh->getValue(MAP_SIZE - 1, MAP_SIZE - 1).position.y = distribution(generator);
-    mesh->getValue(MAP_SIZE - 1, 0).position.y = distribution(generator);
-    diamondSquare(mesh, h, MAP_SIZE - 1, distribution(generator));
-
+    auto mesh = new Terrain(MAP_SIZE, 7.f, 1.f, shader, material);
     mesh->buildBuffers();
     terrain.push_back(mesh);
+    glErrorCheck();
 }
 
 int main() {
@@ -211,21 +133,19 @@ int main() {
     }
     glfwSwapInterval(1);
 
-    // Generate shaders
-    shader = new Shader("assets/shaders/vert.glsl", "assets/shaders/terrain_frag.glsl");
-    shader->use();
-    shader->setGlobalAmbient(globalAmbient);
-    shader->setLight(light);
-
     // Setup callbacks
     glfwSetFramebufferSizeCallback(window, glfwFramebufferSizeCallback);
     glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
         camera.handleKey(key, scancode, action, mods);
-        shader->setUniform("view", camera.getViewMatrix());
+        for (auto shader : shaders) {
+            shader->setUniform("view", camera.getViewMatrix());
+        }
     });
     glfwSetCursorPosCallback(window, [](GLFWwindow* window, double xPos, double yPos) {
         camera.handleCursorMove(xPos, yPos);
-        shader->setUniform("view", camera.getViewMatrix());
+        for (auto shader : shaders) {
+            shader->setUniform("view", camera.getViewMatrix());
+        }
     });
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Lock mouse to window and hide cursor
 
@@ -233,9 +153,11 @@ int main() {
     glClearColor(.7f, .7f, .7f, 1.f);
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
+    glErrorCheck();
 
     // Load skybox
     auto skybox = new Skybox(new Shader("assets/shaders/skybox_vert.glsl", "assets/shaders/skybox_frag.glsl"), std::string("assets/textures/skybox_"));
+    glErrorCheck();
 
     // Generate terrain
     std::vector<Terrain *> terrain;
@@ -245,7 +167,10 @@ int main() {
     glViewport(0, 0, 1080, 720);
     camera.updateProjectionMatrix(1080, 720);
     camera.updateViewMatrix();
-    shader->setUniform("projection", camera.getProjMatrix());
+    for (auto shader : shaders) {
+        shader->setUniform("projection", camera.getProjMatrix());
+        glErrorCheck();
+    }
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -253,9 +178,8 @@ int main() {
         skybox->render(camera);
         glErrorCheck();
 
-        shader->use();
         for (auto mesh : terrain) {
-            mesh->render(shader);
+            mesh->render();
             glErrorCheck();
         }
 
