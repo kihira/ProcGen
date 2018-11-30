@@ -18,14 +18,13 @@
 // REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
 #define MAP_SIZE 33
 
-glm::vec3 globalAmbient(.2f, .2f, .2f);
 Camera camera;
 std::vector<Shader *> shaders;
 
 const Light light {
     glm::vec3(2.5f, 10.f, 2.5f),
-    glm::vec3(1.f),
-    glm::vec3(1.f),
+    glm::vec3(.1f),
+    glm::vec3(.8f),
     glm::vec3(1.f),
 };
 
@@ -75,16 +74,13 @@ GLuint loadTexture(const char *filePath) {
 void generateTerrain(std::vector<Terrain *> &terrains) {
     // Main terrain
     auto shader = new Shader("assets/shaders/vert.glsl", "assets/shaders/terrain_frag.glsl");
-    shader->setGlobalAmbient(globalAmbient);
     shader->setLight(light);
     shaders.push_back(shader);
     GLERRCHECK();
 
     Material material = {
-            glm::vec3(1.f, 1.f, 1.f),
-            glm::vec3(1.f, 1.f, 1.f),
-            glm::vec3(1.f, 1.f, 1.f),
-            glm::vec3(1.f, 1.f, 1.f),
+            glm::vec3(1.f),
+            glm::vec3(1.f),
             0.f,
             {
                 loadTexture("assets/textures/sand.jpg"),
@@ -97,14 +93,11 @@ void generateTerrain(std::vector<Terrain *> &terrains) {
     // Water
     // Main terrain
     auto waterShader = new Shader("assets/shaders/water_vert.glsl", "assets/shaders/water_frag.glsl");
-    waterShader->setGlobalAmbient(globalAmbient);
     waterShader->setLight(light);
     shaders.push_back(waterShader);
     GLERRCHECK();
 
     Material waterMaterial = {
-            glm::vec3(1.f, 1.f, 1.f),
-            glm::vec3(1.f, 1.f, 1.f),
             glm::vec3(1.f, 1.f, 1.f),
             glm::vec3(1.f, 1.f, 1.f),
             0.f,

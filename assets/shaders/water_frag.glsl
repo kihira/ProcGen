@@ -1,10 +1,8 @@
 #version 330 core
 
 struct Material {
-    vec3 ambient;
     vec3 diffuse;
     vec3 specular;
-    vec3 emissive;
     float shininess;
 };
 
@@ -18,7 +16,6 @@ struct Light {
 in vec3 normal;
 in vec2 uv;
 
-uniform vec3 globalAmbient;
 uniform Material material;
 uniform Light light;
 uniform sampler2D textures[1];
@@ -29,9 +26,12 @@ out vec4 colour;
 
 void main() {
     vec3 lightDir = normalize(light.position);
-    vec4 diffuse = vec4(material.diffuse * light.diffuse, 1.f);
+    vec4 ambient = texture(textures[0], uv) * vec4(light.ambient, 1.f);
+    vec4 diffuse;
 
-    diffuse *= texture(textures[0], uv);
+    diffuse = texture(textures[0], uv);
+    diffuse *= max(dot(normal, lightDir), 0.f);
+    diffuse *= vec4(light.diffuse, 1.f);
 
-    colour = max(dot(normal, lightDir), 0.f) * diffuse;
+    colour = ambient + diffuse;
 }

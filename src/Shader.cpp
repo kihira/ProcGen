@@ -85,10 +85,8 @@ void Shader::use() {
 }
 
 void Shader::setMaterial(Material &material) {
-    glUniform3fv(glGetUniformLocation(program, "material.ambient"), 1, glm::value_ptr(material.ambient));
     glUniform3fv(glGetUniformLocation(program, "material.diffuse"), 1, glm::value_ptr(material.diffuse));
     glUniform3fv(glGetUniformLocation(program, "material.specular"), 1, glm::value_ptr(material.specular));
-    glUniform3fv(glGetUniformLocation(program, "material.emmisive"), 1, glm::value_ptr(material.emmisive));
     glUniform1f(glGetUniformLocation(program, "material.shininess"), material.shininess);
     GLERRCHECK();
 }
