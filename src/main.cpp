@@ -160,20 +160,20 @@ void generateTerrain(std::vector<Terrain *> &terrain) {
             0.f,
             {
                 loadTexture("assets/textures/sand.jpg"),
-                loadTexture("assets/textures/rock-grassy.jpg")
+                loadTexture("assets/textures/grass.jpg")
             }
     };
     auto mesh = new Terrain(MAP_SIZE, MAP_SIZE, material);
     float maxRand = 7.f;
     float h = 1.f;
     std::uniform_real_distribution<float> distribution(-maxRand, maxRand);
-    float cornerStart = distribution(generator);
+    // float cornerStart = distribution(generator);
 
-    mesh->getValue(0, 0).position.y = cornerStart;
-    mesh->getValue(0, MAP_SIZE - 1).position.y = cornerStart;
-    mesh->getValue(MAP_SIZE - 1, MAP_SIZE - 1).position.y = cornerStart;
-    mesh->getValue(MAP_SIZE - 1, 0).position.y = cornerStart;
-    diamondSquare(mesh, h, MAP_SIZE - 1, maxRand);
+    mesh->getValue(0, 0).position.y = distribution(generator);
+    mesh->getValue(0, MAP_SIZE - 1).position.y = distribution(generator);
+    mesh->getValue(MAP_SIZE - 1, MAP_SIZE - 1).position.y = distribution(generator);
+    mesh->getValue(MAP_SIZE - 1, 0).position.y = distribution(generator);
+    diamondSquare(mesh, h, MAP_SIZE - 1, distribution(generator));
 
     mesh->buildBuffers();
     terrain.push_back(mesh);

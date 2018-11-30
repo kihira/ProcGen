@@ -3,7 +3,6 @@
 #include <iostream>
 #include "Terrain.h"
 
-#define TRIANGLE_STRIP
 #define TEX_SCALE .75f
 
 Terrain::Terrain(unsigned short width, unsigned short height, Material &material) : width(width), height(height), material(material) {
@@ -55,7 +54,6 @@ void Terrain::render(Shader *shader) {
 }
 
 void Terrain::buildBuffers() {
-#ifdef TRIANGLE_STRIP
     // Generate triangle strip indices
     mode = GL_TRIANGLE_STRIP;
     for (unsigned short y = 0; y < height - 1; ++y) {
@@ -71,21 +69,6 @@ void Terrain::buildBuffers() {
     // Remove last two which are degenerates
     indices.pop_back();
     indices.pop_back();
-#else
-    // Generate triangle indices
-    mode = GL_TRIANGLES;
-    for (unsigned short y = 0; y < height - 1; ++y) {
-        for (unsigned short x = 0; x < width - 1; ++x) {
-            indices.push_back((y * height) + x);
-            indices.push_back((y * height) + x + height);
-            indices.push_back((y * height) + x + static_cast<unsigned short>(1));
-
-            indices.push_back((y * height) + x + static_cast<unsigned short>(1));
-            indices.push_back((y * height) + x + height);
-            indices.push_back((y * height) + x + height + static_cast<unsigned short>(1));
-        }
-    }
-#endif
 
     // Generate UVs
     float uScale = static_cast<float>(width) * TEX_SCALE;
@@ -161,18 +144,6 @@ void Terrain::buildBuffers() {
             getValue(x, y).normal = normal;
         }
     }
-
-//    for (int i = 0; i < indices.size() - 2; ++i) {
-//        auto vert1 = data[indices[i]].position;
-//        auto vert2 = data[indices[i + 1]].position;
-//        auto vert3 = data[indices[i + 2]].position;
-//        data[indices[i]].normal += glm::cross(vert1 - vert2, vert1 - vert3);
-//        data[indices[i + 1]].normal += glm::cross(vert2 - vert3, vert2 - vert1);
-//        data[indices[i + 2]].normal += glm::cross(vert3 - vert1, vert3 - vert2);
-//    }
-//    for (int vertex = 0; vertex < getSize(); ++vertex) {
-//        data[vertex].normal = glm::normalize(data[vertex].normal);
-//    }
 
     // Generate VAO
     glGenVertexArrays(1, &vao);
