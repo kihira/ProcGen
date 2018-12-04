@@ -14,9 +14,30 @@ struct TreeSettings {
     float killDistance; // dk
 };
 
+// Branches
+struct Node {
+    Node *parent;
+    glm::vec3 position;
+    glm::vec3 direction;
+    int growCount;
+};
+
+// "leaves"
+struct AttractionPoint {
+    glm::vec3 position;
+    Node *closestNode;
+
+};
+
 class Tree {
 private:
     glm::vec3 position;
+
+    TreeSettings settings;
+    std::vector<AttractionPoint> attractionPoints;
+    std::vector<Node *> nodes;
+
+    void grow();
 public:
     Tree(TreeSettings &crownSettings, glm::vec3 origin);
 
