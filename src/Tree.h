@@ -5,6 +5,7 @@
 
 #include <vec3.hpp>
 #include <vector>
+#include "Shader.h"
 
 struct TreeSettings {
     glm::vec3 crownCentre;
@@ -38,9 +39,19 @@ private:
     std::vector<AttractionPoint> attractionPoints;
     std::vector<Node *> nodes;
 
+    // Render
+    Shader *shader;
+    GLuint vao;
+    GLuint ibo;
+    GLuint vbo;
+    GLuint indices;
+    glm::mat4 model;
+
     void grow();
+
+    void buildBuffers();
 public:
-    Tree(TreeSettings &crownSettings, glm::vec3 origin);
+    Tree(TreeSettings &settings, glm::vec3 origin, Shader *shader);
 
     void render();
 };
