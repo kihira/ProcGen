@@ -12,6 +12,7 @@ struct TreeSettings {
     unsigned int attractionPoints;
     float influenceRadius; // di
     float killDistance; // dk
+    float nodeSize;
 };
 
 // Branches
@@ -19,7 +20,7 @@ struct Node {
     Node *parent;
     glm::vec3 position;
     glm::vec3 direction;
-    int growCount;
+    int affectCount;
 };
 
 // "leaves"

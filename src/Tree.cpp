@@ -24,7 +24,11 @@ Tree::Tree(TreeSettings &settings, glm::vec3 origin) : position(origin) {
 }
 
 void Tree::grow() {
+    if (attractionPoints.empty()) return;
+
     for (auto point : attractionPoints) {
+        point.closestNode = nullptr;
+
         for (auto node : nodes) {
             auto distance = glm::distance(point.position, node->position);
             if (distance < settings.killDistance) {
@@ -33,12 +37,36 @@ void Tree::grow() {
             }
             else if (distance < settings.influenceRadius) {
                 // Check if we're now the closest point and if so, set it
-                if (point.closestNode != nullptr && distance < glm::distance(point.closestNode->position, point.position)) {
+                if (point.closestNode == nullptr || distance < glm::distance(point.closestNode->position, point.position)) {
                     point.closestNode = node;
                 }
             }
         }
+
+        // Move node direction towards point
+        if (point.closestNode != nullptr) {
+            auto direction = point.position - point.closestNode->position;
+            direction = glm::normalize(direction);
+            point.closestNode->direction += direction;
+            point.closestNode->affectCount++;
+        }
     }
+
+    // Generate new nodes
+    std::vector<Node *> newNodes;
+    for (auto &node : nodes) {
+        if (node->affectCount > 0) {
+            auto direction = glm::normalize(node->direction / (float)node->affectCount);
+            auto newNode = new Node();
+            newNode->parent = node;
+            newNode->direction = direction;
+            newNode->position = node->position + direction * settings.nodeSize;
+        }
+    }
+
+    // Add new nodes
+    nodes.insert(nodes.end(), newNodes.begin(), newNodes.end());
+
 }
 
 void Tree::render() {
