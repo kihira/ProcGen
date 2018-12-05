@@ -4,7 +4,6 @@
 
 void Camera::updateProjectionMatrix(const int width, const int height) {
     projMatrix = glm::perspective(glm::radians(fov), (float) width / (float) height, near_, far_);
-    // todo shader->setUniform("projection", projMatrix);
 }
 
 void Camera::updateViewMatrix() {

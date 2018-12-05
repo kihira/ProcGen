@@ -14,12 +14,14 @@
 #include "Skybox.h"
 #include "glHelper.h"
 #include "Water.h"
+#include "Tree.h"
 
 // REMEMBER ITS TO THE POWER OF 2, NOT DIVISIBLE BY 2 (2^n+1)
 #define MAP_SIZE 33
 
 Camera camera;
 std::vector<Shader *> shaders;
+Tree *tree;
 
 const Light light {
     glm::vec3(2.5f, 10.f, 2.5f),
@@ -111,6 +113,22 @@ void generateTerrain(std::vector<Terrain *> &terrains) {
     GLERRCHECK();
 }
 
+void generateTree() {
+    auto shader = new Shader("assets/shaders/tree_vert.glsl", "assets/shaders/tree_frag.glsl");
+    shader->setLight(light);
+    shaders.push_back(shader);
+
+    TreeSettings settings{};
+    settings.attractionPoints = 100;
+    settings.influenceRadius = 1.f;
+    settings.killDistance = .2f;
+    settings.crownCentre = glm::vec3(0.f, 5.f, 0.f);
+    settings.crownSize = glm::vec3(2.f, 4.f, 2.f);
+    settings.nodeSize = .5f;
+
+    tree = new Tree(settings, glm::vec3(0.f), shader);
+}
+
 int main() {
     glfwSetErrorCallback(glfwErrorCallback);
 
@@ -174,6 +192,7 @@ int main() {
     // Generate terrain
     std::vector<Terrain *> terrain;
     generateTerrain(terrain);
+    generateTree();
 
     // Initialise camera
     glViewport(0, 0, 1080, 720);
@@ -191,10 +210,11 @@ int main() {
         skybox->render(camera);
         GLERRCHECK();
 
-        for (auto mesh : terrain) {
-            mesh->render();
-            GLERRCHECK();
-        }
+//        for (auto mesh : terrain) {
+//            mesh->render();
+//            GLERRCHECK();
+//        }
+        tree->render();
 
         glfwPollEvents();
         glfwSwapBuffers(window);
