@@ -58,7 +58,7 @@ void Tree::grow() {
             }
         }
 
-        // Move node direction towards point
+        // Move node towards point
         if (point->closestNode != nullptr) {
             auto direction = point->position - point->closestNode->position;
             direction = glm::normalize(direction);
@@ -86,31 +86,35 @@ void Tree::grow() {
 }
 
 void Tree::buildBuffers() {
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-    glPointSize(10);
-
     std::vector<glm::vec3> vertexData;
     for (auto &node : nodes) {
-        vertexData.push_back(node->position);
+        if (node->parent != nullptr) {
+            vertexData.push_back(node->position);
+            vertexData.push_back(node->parent->position);
+        }
     }
-    glBufferData(GL_ARRAY_BUFFER, vertexData.size(), &vertexData[0], GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
-
-    glGenBuffers(1, &ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
     std::vector<unsigned short> indicesData;
     indicesData.reserve(nodes.size());
     for (int i = 0; i < nodes.size(); ++i) {
         indicesData.push_back(i);
     }
+
     indices = indicesData.size();
+
+    glLineWidth(3);
+
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertexData.size(), &vertexData[0], GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
+
+    glGenBuffers(1, &ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesData.size(), &indicesData[0], GL_STATIC_DRAW);
 
     model = glm::translate(glm::mat4(1.f), position);
@@ -121,5 +125,5 @@ void Tree::render() {
     shader->setUniform("model", model);
 
     glBindVertexArray(vao);
-    glDrawElements(GL_POINTS, indices, GL_UNSIGNED_SHORT, nullptr);
+    glDrawElements(GL_LINES, indices, GL_UNSIGNED_SHORT, nullptr);
 }
