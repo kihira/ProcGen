@@ -125,6 +125,8 @@ void generateTree() {
     settings.crownCentre = glm::vec3(0.f, 2.5f, 0.f);
     settings.crownSize = glm::vec3(2.f, 5.f, 2.f);
     settings.nodeSize = .25f;
+    settings.branchSides = 8;
+    settings.branchThickness = .2f;
 
     tree = new Tree(settings, glm::vec3(0.f), shader);
 }

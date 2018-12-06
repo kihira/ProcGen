@@ -15,6 +15,8 @@ struct TreeSettings {
     float influenceRadius; // di
     float killDistance; // dk
     float nodeSize;
+    unsigned int branchSides; // Sides to the cylinder for trees
+    float branchThickness;
 };
 
 // Branches
@@ -49,6 +51,8 @@ private:
     glm::mat4 model;
 
     void grow();
+
+    std::vector<glm::vec3> generateCylinderVertices();
 
     void buildBuffers();
 public:

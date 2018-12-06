@@ -4,6 +4,8 @@
 #include <geometric.hpp>
 #include <ext/matrix_transform.hpp>
 #include <iostream>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <gtx/rotate_vector.hpp>
 
 Tree::Tree(TreeSettings &settings, glm::vec3 origin, Shader *shader) : settings(settings), position(origin), shader(shader) {
 
@@ -31,39 +33,40 @@ Tree::Tree(TreeSettings &settings, glm::vec3 origin, Shader *shader) : settings(
     rootNode->direction = glm::vec3(0.f, 1.f, 0.f);
     nodes.push_back(rootNode);
 
-    while (!attractionPoints.empty()) {
+    int count = 0;
+    while (!attractionPoints.empty() && count < 100) {
         grow();
+        count++;
     }
+
+    std::cout << "Generating buffers" << std::endl;
     buildBuffers();
 }
 
 void Tree::grow() {
     if (attractionPoints.empty()) return;
 
-    for (auto point = attractionPoints.begin(); point != attractionPoints.end(); ++point) {
-        point->closestNode = nullptr;
+    // Loop over attraction points and see if any nodes are attracted
+    for (auto &attractionPoint : attractionPoints) {
+        attractionPoint.closestNode = nullptr;
 
         for (auto node : nodes) {
-            auto distance = glm::distance(point->position, node->position);
-            if (distance < settings.killDistance) {
-                // Remove node as we've now reached it
-                attractionPoints.erase(point);
-                continue;
-            }
-            else if (distance < settings.influenceRadius) {
+            auto distance = glm::distance(attractionPoint.position, node->position);
+            if (distance < settings.influenceRadius) {
                 // Check if we're now the closest point and if so, set it
-                if (point->closestNode == nullptr || distance < glm::distance(point->closestNode->position, point->position)) {
-                    point->closestNode = node;
+                if (attractionPoint.closestNode == nullptr || distance < glm::distance(attractionPoint.closestNode->position,
+                                                                                       attractionPoint.position)) {
+                    attractionPoint.closestNode = node;
                 }
             }
         }
 
         // Move node towards point
-        if (point->closestNode != nullptr) {
-            auto direction = point->position - point->closestNode->position;
+        if (attractionPoint.closestNode != nullptr) {
+            auto direction = attractionPoint.position - attractionPoint.closestNode->position;
             direction = glm::normalize(direction);
-            point->closestNode->direction += direction;
-            point->closestNode->influenceCount += 1;
+            attractionPoint.closestNode->direction += direction;
+            attractionPoint.closestNode->influenceCount += 1;
         }
     }
 
@@ -83,26 +86,67 @@ void Tree::grow() {
     // Add new nodes
     nodes.insert(nodes.end(), newNodes.begin(), newNodes.end());
 
+    // Remove attraction points
+    // todo see if we can collapse this back into the first loop
+    auto point = attractionPoints.begin();
+    while (point != attractionPoints.end()) {
+        bool hasBreak = false;
+        for (auto node : nodes) {
+            auto distance = glm::distance(point->position, node->position);
+            if (distance < settings.killDistance) {
+                // Remove node as we've now reached it
+                point = attractionPoints.erase(point);
+                hasBreak = true;
+                break;
+            }
+        }
+        if (!hasBreak) point++;
+    }
+
+}
+
+std::vector<glm::vec3> Tree::generateCylinderVertices() {
+    std::vector<glm::vec3> vertices;
+    vertices.reserve(settings.branchSides * 2);
+    auto segmentSize = glm::radians(360.f / static_cast<float>(settings.branchSides));
+
+    for (int i = 0; i < settings.branchSides; ++i) {
+        vertices.push_back(glm::rotateY(glm::vec3(0.f, 0.f, settings.branchThickness), segmentSize * i));
+    }
+    for (int i = 0; i < settings.branchSides; ++i) {
+        vertices.push_back(glm::rotateY(glm::vec3(0.f, settings.nodeSize, settings.branchThickness), segmentSize * i));
+    }
+
+    return vertices;
 }
 
 void Tree::buildBuffers() {
     std::vector<glm::vec3> vertexData;
+    glm::mat4 transform(1.f);
+
     for (auto &node : nodes) {
         if (node->parent != nullptr) {
-            vertexData.push_back(node->position);
-            vertexData.push_back(node->parent->position);
+            auto verts = generateCylinderVertices();
+            transform = glm::lookAt(node->position, node->direction, glm::vec3(0.f, 1.f, 0.f));
+            for (int i = 0; i < settings.branchSides * 2; ++i) {
+                vertexData.emplace_back(transform * glm::vec4(verts[i], 1.f));
+            }
         }
     }
 
     std::vector<unsigned short> indicesData;
     indicesData.reserve(nodes.size());
-    for (int i = 0; i < nodes.size(); ++i) {
+    for (int i = 0; i < nodes.size(); i++) {
         indicesData.push_back(i);
+        indicesData.push_back(i + settings.branchSides);
+        indicesData.push_back(i + 1);
+
+        indicesData.push_back(i + settings.branchSides + 1);
+        indicesData.push_back(i + settings.branchSides);
+        indicesData.push_back(i + 1);
     }
 
     indices = indicesData.size();
-
-    glLineWidth(3);
 
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -125,5 +169,5 @@ void Tree::render() {
     shader->setUniform("model", model);
 
     glBindVertexArray(vao);
-    glDrawElements(GL_LINES, indices, GL_UNSIGNED_SHORT, nullptr);
+    glDrawElements(GL_TRIANGLES, indices, GL_UNSIGNED_SHORT, nullptr);
 }
