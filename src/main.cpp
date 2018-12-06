@@ -119,12 +119,12 @@ void generateTree() {
     shaders.push_back(shader);
 
     TreeSettings settings{};
-    settings.attractionPoints = 100;
-    settings.influenceRadius = 1.f;
-    settings.killDistance = .2f;
-    settings.crownCentre = glm::vec3(0.f, 5.f, 0.f);
-    settings.crownSize = glm::vec3(2.f, 4.f, 2.f);
-    settings.nodeSize = .5f;
+    settings.attractionPoints = 1000;
+    settings.influenceRadius = 2.f;
+    settings.killDistance = .5f;
+    settings.crownCentre = glm::vec3(0.f, 2.5f, 0.f);
+    settings.crownSize = glm::vec3(2.f, 5.f, 2.f);
+    settings.nodeSize = .25f;
 
     tree = new Tree(settings, glm::vec3(0.f), shader);
 }

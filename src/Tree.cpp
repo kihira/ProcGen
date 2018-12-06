@@ -3,11 +3,11 @@
 #include <random>
 #include <geometric.hpp>
 #include <ext/matrix_transform.hpp>
+#include <iostream>
 
-Tree::Tree(TreeSettings &settings, glm::vec3 origin, Shader *shader) : position(origin), shader(shader) {
+Tree::Tree(TreeSettings &settings, glm::vec3 origin, Shader *shader) : settings(settings), position(origin), shader(shader) {
 
     // Generate attraction points
-    attractionPoints.reserve(settings.attractionPoints);
     glm::vec3 crownSizeHalf = settings.crownSize / 2.f;
     std::default_random_engine generator;
     std::uniform_real_distribution<float> xDist(-crownSizeHalf.x, crownSizeHalf.x);
@@ -15,11 +15,21 @@ Tree::Tree(TreeSettings &settings, glm::vec3 origin, Shader *shader) : position(
     std::uniform_real_distribution<float> zDist(-crownSizeHalf.z, crownSizeHalf.z);
 
     for (int i = 0; i < settings.attractionPoints; ++i) {
-        auto leaf = glm::vec3(settings.crownCentre);
-        leaf.x = xDist(generator);
-        leaf.y = yDist(generator);
-        leaf.z = zDist(generator);
+        auto pos = glm::vec3(settings.crownCentre);
+        pos.x += xDist(generator);
+        pos.y += yDist(generator);
+        pos.z += zDist(generator);
+
+        AttractionPoint point{};
+        point.position = pos;
+        attractionPoints.push_back(point);
     }
+
+    // Create root node
+    auto rootNode = new Node();
+    rootNode->position = position;
+    rootNode->direction = glm::vec3(0.f, 1.f, 0.f);
+    nodes.push_back(rootNode);
 
     while (!attractionPoints.empty()) {
         grow();
@@ -30,8 +40,7 @@ Tree::Tree(TreeSettings &settings, glm::vec3 origin, Shader *shader) : position(
 void Tree::grow() {
     if (attractionPoints.empty()) return;
 
-    auto point = attractionPoints.begin();
-    while (point != attractionPoints.end()) {
+    for (auto point = attractionPoints.begin(); point != attractionPoints.end(); ++point) {
         point->closestNode = nullptr;
 
         for (auto node : nodes) {
@@ -39,6 +48,7 @@ void Tree::grow() {
             if (distance < settings.killDistance) {
                 // Remove node as we've now reached it
                 attractionPoints.erase(point);
+                continue;
             }
             else if (distance < settings.influenceRadius) {
                 // Check if we're now the closest point and if so, set it
@@ -53,19 +63,20 @@ void Tree::grow() {
             auto direction = point->position - point->closestNode->position;
             direction = glm::normalize(direction);
             point->closestNode->direction += direction;
-            point->closestNode->affectCount++;
+            point->closestNode->influenceCount += 1;
         }
     }
 
     // Generate new nodes
     std::vector<Node *> newNodes;
-    for (auto &node : nodes) {
-        if (node->affectCount > 0) {
-            auto direction = glm::normalize(node->direction / (float)node->affectCount);
+    for (auto node : nodes) {
+        if (node->influenceCount > 0) {
+            auto direction = glm::normalize(node->direction / (float)node->influenceCount);
             auto newNode = new Node();
             newNode->parent = node;
             newNode->direction = direction;
             newNode->position = node->position + direction * settings.nodeSize;
+            newNodes.push_back(newNode);
         }
     }
 
@@ -81,7 +92,7 @@ void Tree::buildBuffers() {
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    glPointSize(100);
+    glPointSize(10);
 
     std::vector<glm::vec3> vertexData;
     for (auto &node : nodes) {

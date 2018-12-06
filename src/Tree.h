@@ -5,6 +5,7 @@
 
 #include <vec3.hpp>
 #include <vector>
+#include <list>
 #include "Shader.h"
 
 struct TreeSettings {
@@ -21,7 +22,7 @@ struct Node {
     Node *parent;
     glm::vec3 position;
     glm::vec3 direction;
-    int affectCount;
+    int influenceCount;
 };
 
 // "leaves"
@@ -36,7 +37,7 @@ private:
     glm::vec3 position;
 
     TreeSettings settings;
-    std::vector<AttractionPoint> attractionPoints;
+    std::list<AttractionPoint> attractionPoints;
     std::vector<Node *> nodes;
 
     // Render
