@@ -128,7 +128,7 @@ void Tree::buildBuffers() {
         if (node->parent != nullptr) {
             auto verts = generateCylinderVertices();
             transform = glm::lookAt(node->position, node->direction, glm::vec3(0.f, 1.f, 0.f));
-            for (int i = 0; i < settings.branchSides * 2; ++i) {
+            for (int i = 0; i < verts.size(); ++i) {
                 vertexData.emplace_back(glm::vec3(transform * glm::vec4(verts[i], 1.f)));
             }
         }
@@ -137,15 +137,15 @@ void Tree::buildBuffers() {
     std::vector<unsigned short> indicesData;
     indicesData.reserve(nodes.size());
     for (int i = 0; i < nodes.size(); i++) {
-        int offset = i * settings.branchSides;
+        int offset = i * settings.branchSides * 2;
         for (int j = 0; j < settings.branchSides; ++j) {
             indicesData.push_back(offset + j);
             indicesData.push_back(offset + j + settings.branchSides);
-            indicesData.push_back(offset + j + 1);
+            indicesData.push_back(offset + ((j + 1) % settings.branchSides));
 
-            indicesData.push_back(offset + j + settings.branchSides + 1);
+            indicesData.push_back(offset + ((j + 1) % settings.branchSides) + settings.branchSides);
             indicesData.push_back(offset + j + settings.branchSides);
-            indicesData.push_back(offset + j + 1);
+            indicesData.push_back(offset + ((j + 1) % settings.branchSides));
         }
     }
 
