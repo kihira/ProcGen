@@ -4,15 +4,13 @@
 
 
 #include <vec3.hpp>
-#include <glad/glad.h>
 #include <vector>
+#include <random>
 #include "Shader.h"
 
 struct Material {
-    glm::vec3 ambient;
     glm::vec3 diffuse;
     glm::vec3 specular;
-    glm::vec3 emmisive;
     float shininess;
     std::vector<GLuint> textures;
 };
@@ -28,6 +26,8 @@ struct Vertex {
  */
 class Terrain {
 private:
+    static std::default_random_engine generator;
+
     GLuint vao; // Vertex array
     GLuint vbo; // Vertices data
     GLuint ibo; // Indices data
@@ -42,10 +42,21 @@ private:
     glm::mat4 modelMatrix;
 
     // Data for generating terrain
-    unsigned short width, height;
+    unsigned short size;
+    float minY, maxY;
+    float maxRand, h;
     Vertex *data;
+
+    float diamondStep(int x, int y, int stepSize);
+
+    float squareStep(int x, int y, int stepSize);
+
+    void diamondSquare(int stepSize, float randMax);
+
+protected:
+    Shader *shader;
 public:
-    Terrain(unsigned short width, unsigned short height, Material &material);
+    Terrain(unsigned short size, float maxRand, float h, Shader *shader, Material &material);
 
     Vertex &getValue(int x, int y);
 
@@ -56,7 +67,7 @@ public:
     /**
      * Renders the current mesh
      */
-    void render(Shader *shader);
+    virtual void render();
 
     /**
      * Generates the buffers and fills them with the mesh data
@@ -68,6 +79,8 @@ public:
      * This should ALWAYS be called after updating position/rotation/scale
      */
     void updateModelMatrix();
+
+    void setPosition(const glm::vec3 &position);
 };
 
 
