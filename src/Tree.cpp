@@ -6,6 +6,7 @@
 #include <iostream>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <gtx/rotate_vector.hpp>
+#include <gtx/quaternion.hpp>
 
 #define CYLINDERS
 
@@ -75,7 +76,7 @@ void Tree::grow() {
         if (node->influenceCount > 0) {
             // Calculate new position and direction of branch based on point influence
             auto direction = glm::normalize(node->influenceDirection / (float)node->influenceCount);
-            auto newNode = new Node(node, node->position + direction * settings.nodeSize, direction);
+            auto newNode = new Node(node, node->position + (direction * settings.nodeSize), direction);
             newNodes.push_back(newNode);
 
             // Reset node direction/influence
@@ -103,25 +104,60 @@ void Tree::grow() {
 
 }
 
+// http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-17-quaternions/#how-do-i-find-the-rotation-between-2-vectors-
+glm::quat rotationBetweenVectors(glm::vec3 start, glm::vec3 dest){
+    start = normalize(start);
+    dest = normalize(dest);
+
+    float cosTheta = dot(start, dest);
+    glm::vec3 rotationAxis;
+
+    if (cosTheta < -1 + 0.001f){
+        // special case when vectors in opposite directions:
+        // there is no "ideal" rotation axis
+        // So guess one; any will do as long as it's perpendicular to start
+        rotationAxis = cross(glm::vec3(0.0f, 0.0f, 1.0f), start);
+        if (glm::length(rotationAxis) < 0.01 ) // bad luck, they were parallel, try again!
+            rotationAxis = cross(glm::vec3(1.0f, 0.0f, 0.0f), start);
+
+        rotationAxis = normalize(rotationAxis);
+        return glm::angleAxis(glm::radians(180.0f), rotationAxis);
+    }
+
+    rotationAxis = cross(start, dest);
+
+    float s = sqrt( (1+cosTheta)*2 );
+    float invs = 1 / s;
+
+    return glm::quat(
+            s * 0.5f,
+            rotationAxis.x * invs,
+            rotationAxis.y * invs,
+            rotationAxis.z * invs
+    );
+
+}
+
 std::vector<glm::vec3> Tree::generateBranchVertices(Node *node) {
     std::vector<glm::vec3> vertices;
     vertices.reserve(settings.branchSides * 2);
     auto segmentSize = glm::radians(360.f / static_cast<float>(settings.branchSides));
-    glm::mat4 bottomTransform;
-    glm::mat4 bottomRotation;
-    glm::mat4 topTransform;
-    glm::mat4 topRotation;
-    glm::mat4 transform = glm::lookAt(node->position, node->direction, glm::vec3(0.f, 1.f, 0.f));;
+    glm::mat4 bottomTransform = glm::translate(node->parent->position);
+    //glm::mat4 bottomRotation(1.f);
+    glm::mat4 bottomRotation = glm::toMat4(rotationBetweenVectors(node->parent->direction, node->direction));
+    glm::mat4 topTransform = glm::translate(node->position);
+    //glm::mat4 topRotation(1.f);
+    glm::mat4 topRotation = glm::toMat4(rotationBetweenVectors(node->parent->direction, node->direction));
 
     for (int i = 0; i < settings.branchSides; ++i) {
         auto bottomVertex = glm::vec3(0.f, 0.f, settings.nodeSize * .5f);
         bottomVertex = glm::rotateY(bottomVertex, segmentSize * i);
-        bottomVertex = transform * glm::vec4(bottomVertex, 1.f);
+        bottomVertex = bottomTransform * bottomRotation * glm::vec4(bottomVertex, 1.f);
         vertices.emplace_back(bottomVertex);
 
-        auto topVertex = glm::vec3(0.f, settings.nodeSize, settings.nodeSize * .5f);
+        auto topVertex = glm::vec3(0.f, 0.f, settings.nodeSize * .5f);
         topVertex = glm::rotateY(topVertex, segmentSize * i);
-        topVertex = transform * glm::vec4(topVertex, 1.f);
+        topVertex = topTransform * topRotation * glm::vec4(topVertex, 1.f);
         vertices.emplace_back(topVertex);
     }
 
@@ -141,17 +177,17 @@ void Tree::buildBuffers() {
     }
 
     std::vector<unsigned short> indicesData;
-    indicesData.reserve(nodes.size());
-    for (int i = 0; i < nodes.size(); i++) {
-        int offset = i * settings.branchSides * 2;
-        for (int j = 0; j < settings.branchSides; ++j) {
-            indicesData.push_back(offset + (j * 2));
-            indicesData.push_back(offset + (j * 2) + 3);
-            indicesData.push_back(offset + (j * 2) + 2);
+    indicesData.reserve(nodes.size() * settings.branchSides * 2);
+    for (int i = 0; i < nodes.size() - 1; i++) {
+        int offset = indicesData.size();
+        for (int j = 0; j < settings.branchSides; j++) {
+            indicesData.push_back(offset + ((j * 2) % (settings.branchSides * 2)));
+            indicesData.push_back(offset + (((j * 2) + 3) % (settings.branchSides * 2)));
+            indicesData.push_back(offset + (((j * 2) + 2) % (settings.branchSides * 2)));
 
-            indicesData.push_back(offset + (j * 2));
-            indicesData.push_back(offset + (j * 2) + 1);
-            indicesData.push_back(offset + (j * 2) + 3);
+            indicesData.push_back(offset + ((j * 2) % (settings.branchSides * 2)));
+            indicesData.push_back(offset + (((j * 2) + 1) % (settings.branchSides * 2)));
+            indicesData.push_back(offset + (((j * 2) + 3) % (settings.branchSides * 2)));
         }
     }
 #else
