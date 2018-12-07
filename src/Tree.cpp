@@ -7,6 +7,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <gtx/rotate_vector.hpp>
 
+#define CYLINDERS
+
 Tree::Tree(TreeSettings &settings, glm::vec3 origin, Shader *shader) : settings(settings), position(origin), shader(shader) {
 
     // Generate attraction points
@@ -101,16 +103,26 @@ void Tree::grow() {
 
 }
 
-std::vector<glm::vec3> Tree::generateCylinderVertices() {
+std::vector<glm::vec3> Tree::generateBranchVertices(Node *node) {
     std::vector<glm::vec3> vertices;
     vertices.reserve(settings.branchSides * 2);
     auto segmentSize = glm::radians(360.f / static_cast<float>(settings.branchSides));
+    glm::mat4 bottomTransform;
+    glm::mat4 bottomRotation;
+    glm::mat4 topTransform;
+    glm::mat4 topRotation;
+    glm::mat4 transform = glm::lookAt(node->position, node->direction, glm::vec3(0.f, 1.f, 0.f));;
 
     for (int i = 0; i < settings.branchSides; ++i) {
-        vertices.push_back(glm::rotateY(glm::vec3(0.f, 0.f, settings.branchThickness), segmentSize * i));
-    }
-    for (int i = 0; i < settings.branchSides; ++i) {
-        vertices.push_back(glm::rotateY(glm::vec3(0.f, settings.nodeSize, settings.branchThickness), segmentSize * i));
+        auto bottomVertex = glm::vec3(0.f, 0.f, settings.nodeSize * .5f);
+        bottomVertex = glm::rotateY(bottomVertex, segmentSize * i);
+        bottomVertex = transform * glm::vec4(bottomVertex, 1.f);
+        vertices.emplace_back(bottomVertex);
+
+        auto topVertex = glm::vec3(0.f, settings.nodeSize, settings.nodeSize * .5f);
+        topVertex = glm::rotateY(topVertex, segmentSize * i);
+        topVertex = transform * glm::vec4(topVertex, 1.f);
+        vertices.emplace_back(topVertex);
     }
 
     return vertices;
@@ -121,13 +133,10 @@ void Tree::buildBuffers() {
 #ifdef CYLINDERS
     glm::mat4 transform(1.f);
 
-    for (auto &node : nodes) {
+    for (auto node : nodes) {
         if (node->parent != nullptr) {
-            auto verts = generateCylinderVertices();
-            transform = glm::lookAt(node->position, node->direction, glm::vec3(0.f, 1.f, 0.f));
-            for (int i = 0; i < verts.size(); ++i) {
-                vertexData.emplace_back(glm::vec3(transform * glm::vec4(verts[i], 1.f)));
-            }
+            auto verts = generateBranchVertices(node);
+            vertexData.insert(vertexData.end(), verts.begin(), verts.end());
         }
     }
 
@@ -136,13 +145,13 @@ void Tree::buildBuffers() {
     for (int i = 0; i < nodes.size(); i++) {
         int offset = i * settings.branchSides * 2;
         for (int j = 0; j < settings.branchSides; ++j) {
-            indicesData.push_back(offset + j);
-            indicesData.push_back(offset + j + settings.branchSides);
-            indicesData.push_back(offset + ((j + 1) % settings.branchSides));
+            indicesData.push_back(offset + (j * 2));
+            indicesData.push_back(offset + (j * 2) + 3);
+            indicesData.push_back(offset + (j * 2) + 2);
 
-            indicesData.push_back(offset + ((j + 1) % settings.branchSides) + settings.branchSides);
-            indicesData.push_back(offset + j + settings.branchSides);
-            indicesData.push_back(offset + ((j + 1) % settings.branchSides));
+            indicesData.push_back(offset + (j * 2));
+            indicesData.push_back(offset + (j * 2) + 1);
+            indicesData.push_back(offset + (j * 2) + 3);
         }
     }
 #else

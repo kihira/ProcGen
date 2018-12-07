@@ -24,15 +24,15 @@ struct TreeSettings {
 struct Node {
     Node *parent;
     glm::vec3 position;
-    glm::vec3 originalDirection;
+    glm::vec3 direction;
     glm::vec3 influenceDirection;
     int influenceCount = 0;
 
     Node(Node *parent, glm::vec3 position, glm::vec3 direction) :
-        parent(parent), position(position), originalDirection(direction), influenceDirection(direction) {}
+        parent(parent), position(position), direction(direction), influenceDirection(direction) {}
 
     void resetInfluence() {
-        influenceDirection = originalDirection;
+        influenceDirection = direction;
         influenceCount = 0;
     }
 };
@@ -62,7 +62,7 @@ private:
 
     void grow();
 
-    std::vector<glm::vec3> generateCylinderVertices();
+    std::vector<glm::vec3> generateBranchVertices(Node *node);
 
     void buildBuffers();
 public:
