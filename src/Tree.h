@@ -15,6 +15,7 @@ struct TreeSettings {
     float influenceRadius; // di
     float killDistance; // dk
     float nodeSize;
+    unsigned short maxIterations = 200;
     unsigned int branchSides; // Sides to the cylinder for trees
     float branchThickness;
 };

@@ -120,8 +120,8 @@ void generateTree() {
 
     TreeSettings settings{};
     settings.attractionPoints = 500;
-    settings.nodeSize = .1f;
-    settings.influenceRadius = 10.f;
+    settings.nodeSize = .15f;
+    settings.influenceRadius = 15.f;
     settings.killDistance = 2.f;
     settings.crownCentre = glm::vec3(0.f, 2.5f, 0.f);
     settings.crownSize = glm::vec3(2.f, 5.f, 2.f);

@@ -31,11 +31,12 @@ Tree::Tree(TreeSettings &settings, glm::vec3 origin, Shader *shader) : settings(
     auto rootNode = new Node(nullptr, position, glm::vec3(0.f, 1.f, 0.f));
     nodes.push_back(rootNode);
 
-    while (!attractionPoints.empty() {
+    unsigned short iterations = 0;
+    while (!attractionPoints.empty() && iterations < settings.maxIterations) {
         grow();
+        iterations++;
     }
 
-    std::cout << "Generating buffers" << std::endl;
     buildBuffers();
 }
 
@@ -85,19 +86,17 @@ void Tree::grow() {
 
     // Remove attraction points
     // todo see if we can collapse this back into the first loop
-    auto point = attractionPoints.begin();
-    while (point != attractionPoints.end()) {
-        bool hasBreak = false;
-        for (auto node : nodes) {
+    for (auto node : nodes) {
+        auto point = attractionPoints.begin();
+        while (point != attractionPoints.end()) {
             auto distance = glm::distance(point->position, node->position);
             if (distance <= (settings.killDistance * settings.nodeSize)) {
                 // Remove node as we've now reached it
                 point = attractionPoints.erase(point);
-                hasBreak = true;
-                break;
+            } else {
+                point++;
             }
         }
-        if (!hasBreak) point++;
     }
 
 }
