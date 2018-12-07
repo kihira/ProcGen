@@ -28,15 +28,11 @@ Tree::Tree(TreeSettings &settings, glm::vec3 origin, Shader *shader) : settings(
     }
 
     // Create root node
-    auto rootNode = new Node();
-    rootNode->position = position;
-    rootNode->direction = glm::vec3(0.f, 1.f, 0.f);
+    auto rootNode = new Node(nullptr, position, glm::vec3(0.f, 1.f, 0.f));
     nodes.push_back(rootNode);
 
-    int count = 0;
-    while (!attractionPoints.empty() && count < 100) {
+    while (!attractionPoints.empty() {
         grow();
-        count++;
     }
 
     std::cout << "Generating buffers" << std::endl;
@@ -52,7 +48,7 @@ void Tree::grow() {
 
         for (auto node : nodes) {
             auto distance = glm::distance(attractionPoint.position, node->position);
-            if (distance < settings.influenceRadius) {
+            if (distance > (settings.killDistance * settings.nodeSize) && distance < (settings.influenceRadius * settings.nodeSize)) {
                 // Check if we're now the closest point and if so, set it
                 if (attractionPoint.closestNode == nullptr || distance < glm::distance(attractionPoint.closestNode->position,
                                                                                        attractionPoint.position)) {
@@ -65,7 +61,7 @@ void Tree::grow() {
         if (attractionPoint.closestNode != nullptr) {
             auto direction = attractionPoint.position - attractionPoint.closestNode->position;
             direction = glm::normalize(direction);
-            attractionPoint.closestNode->direction += direction;
+            attractionPoint.closestNode->influenceDirection += direction;
             attractionPoint.closestNode->influenceCount += 1;
         }
     }
@@ -74,12 +70,13 @@ void Tree::grow() {
     std::vector<Node *> newNodes;
     for (auto node : nodes) {
         if (node->influenceCount > 0) {
-            auto direction = glm::normalize(node->direction / (float)node->influenceCount);
-            auto newNode = new Node();
-            newNode->parent = node;
-            newNode->direction = direction;
-            newNode->position = node->position + direction * settings.nodeSize;
+            // Calculate new position and direction of branch based on point influence
+            auto direction = glm::normalize(node->influenceDirection / (float)node->influenceCount);
+            auto newNode = new Node(node, node->position + direction * settings.nodeSize, direction);
             newNodes.push_back(newNode);
+
+            // Reset node direction/influence
+            node->resetInfluence();
         }
     }
 
@@ -93,7 +90,7 @@ void Tree::grow() {
         bool hasBreak = false;
         for (auto node : nodes) {
             auto distance = glm::distance(point->position, node->position);
-            if (distance < settings.killDistance) {
+            if (distance <= (settings.killDistance * settings.nodeSize)) {
                 // Remove node as we've now reached it
                 point = attractionPoints.erase(point);
                 hasBreak = true;
@@ -122,6 +119,7 @@ std::vector<glm::vec3> Tree::generateCylinderVertices() {
 
 void Tree::buildBuffers() {
     std::vector<glm::vec3> vertexData;
+#ifdef CYLINDERS
     glm::mat4 transform(1.f);
 
     for (auto &node : nodes) {
@@ -148,6 +146,20 @@ void Tree::buildBuffers() {
             indicesData.push_back(offset + ((j + 1) % settings.branchSides));
         }
     }
+#else
+    for (auto &node : nodes) {
+        if (node->parent != nullptr) {
+            vertexData.emplace_back(node->position);
+            vertexData.emplace_back(node->parent->position);
+        }
+    }
+
+    std::vector<unsigned short> indicesData;
+    indicesData.reserve(nodes.size());
+    for (auto i = 0; i < nodes.size(); i++) {
+        indicesData.push_back(i);
+    }
+#endif
 
     indices = indicesData.size();
 
@@ -172,5 +184,9 @@ void Tree::render() {
     shader->setUniform("model", model);
 
     glBindVertexArray(vao);
+#ifdef CYLINDERS
     glDrawElements(GL_TRIANGLES, indices, GL_UNSIGNED_SHORT, nullptr);
+#else
+    glDrawElements(GL_LINES, indices, GL_UNSIGNED_SHORT, nullptr);
+#endif
 }

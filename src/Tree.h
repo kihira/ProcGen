@@ -23,8 +23,17 @@ struct TreeSettings {
 struct Node {
     Node *parent;
     glm::vec3 position;
-    glm::vec3 direction;
-    int influenceCount;
+    glm::vec3 originalDirection;
+    glm::vec3 influenceDirection;
+    int influenceCount = 0;
+
+    Node(Node *parent, glm::vec3 position, glm::vec3 direction) :
+        parent(parent), position(position), originalDirection(direction), influenceDirection(direction) {}
+
+    void resetInfluence() {
+        influenceDirection = originalDirection;
+        influenceCount = 0;
+    }
 };
 
 // "leaves"
